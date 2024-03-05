@@ -1,0 +1,24 @@
+Metadata-Version: 2.1
+Name: nngls
+Version: 0.1.0
+Summary: Implementation of nngls
+Home-page: https://github.com/me/myproject
+Author: Wentao Zhan
+Author-email: wzhan3@jhu.edu
+License: MIT
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Programming Language :: Python
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3.6
+Classifier: Programming Language :: Python :: Implementation :: CPython
+Classifier: Programming Language :: Python :: Implementation :: PyPy
+Requires-Python: >=3.6.0
+Description-Content-Type: text/markdown
+License-File: LICENSE
+Requires-Dist: rpy2
+Requires-Dist: torch
+Requires-Dist: numpy
+Requires-Dist: scipy
+Requires-Dist: scikit-learn
+
+

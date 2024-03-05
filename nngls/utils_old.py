@@ -3,11 +3,8 @@ import rpy2.robjects as robjects
 from rpy2.robjects.packages import importr
 import torch
 import numpy as np
-import pandas as pd
 import scipy
-from scipy.spatial import distance_matrix
-from scipy.optimize import *
-from scipy.stats import multivariate_normal
+from scipy.optimize import minimize
 from sklearn.neighbors import NearestNeighbors
 import logging
 import torch_sparse
@@ -50,7 +47,6 @@ def make_cov(theta, dist):
     return (cov)
 
 def make_rank(coord, nn, coord_test = None):
-
     knn = NearestNeighbors(n_neighbors=nn)
     knn.fit(coord)
     if coord_test is None:
@@ -289,22 +285,11 @@ def Simulate(n, p, fx, nn, theta, method = '0', nu = 1.5, a = 0, b = 1, sparse =
 
     return X, Y, I_B, F_diag, rank, coord, cov, corerr
 
-def Simulate_mis(n, p, fx, nn, theta, corerr_gen, a=0, b=1):
-    # n = 1000
+def Simulate_mis(n, p, fx, nn, corerr_gen, a=0, b=1):
     coord = np.random.uniform(low=a, high=b, size=(n, 2))
-    sigma_sq, phi, tau = theta
-    tau_sq = tau * sigma_sq
-
     corerr = corerr_gen(coord)
-    #corerr = corerr_gen(coord/(b-a))
-
-    df = pd.DataFrame(coord, columns=['x', 'y'])
-    dist = distance_matrix(df.values, df.values)
-    rank = np.argsort(dist, axis=-1)
-    rank = rank[:, 1:(nn + 1)]
-
+    rank = make_rank(coord, nn)
     X = np.random.uniform(size=(n, p))
-
     Y = fx(X).reshape(-1) + corerr
 
     return X, Y, rank, coord, corerr
@@ -424,18 +409,6 @@ def import_BRISC():
 
 BRISC = import_BRISC()
 
-def import_RF():
-    RF = importr('randomForest')
-    return RF
-
-def import_RFGLS():
-    RFGLS = importr('RandomForestsGLS')
-    return RFGLS
-
-BRISC = import_BRISC()
-RF = import_RF()
-RFGLS = import_RFGLS()
-
 def BRISC_estimation(residual, X, coord):
     residual_r = robjects.FloatVector(residual)
     coord_r = robjects.FloatVector(coord.transpose().reshape(-1))
@@ -459,18 +432,6 @@ def BRISC_estimation(residual, X, coord):
     theta_hat[2] = tau_sq / sigma_sq
 
     return beta, theta_hat
-
-robjects.globalenv['.Random.seed'] = 1
-
-def RFGLS_prediction(X, Y, coord, X_MISE = 0, n_tree = 100, node_size = 20):
-    Xr = robjects.FloatVector(X.transpose().reshape(-1))
-    Xr = robjects.r['matrix'](Xr, ncol=X.shape[1])
-    Y_r = robjects.FloatVector(Y)
-    coord_r = robjects.FloatVector(coord.transpose().reshape(-1))
-    coord_r = robjects.r['matrix'](coord_r, ncol=2)
-    robjects.globalenv['.Random.seed'] = 1
-    res = RFGLS.RFGLS_estimate_spatial(coord_r, Y_r, Xr, nthsize = node_size, ntree = n_tree)
-    return res
 
 # Decorrelation ########################################################################################################
 def decor_dense(y, FI_B_local, idx = None):

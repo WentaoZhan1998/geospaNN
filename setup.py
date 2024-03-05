@@ -12,8 +12,8 @@ from shutil import rmtree
 from setuptools import find_packages, setup, Command
 
 # Package meta-data.
-NAME = 'NN-GLS'
-DESCRIPTION = 'Implementation of NN-GLS'
+NAME = 'nngls'
+DESCRIPTION = 'Implementation of nngls'
 URL = 'https://github.com/me/myproject'
 EMAIL = 'wzhan3@jhu.edu'
 AUTHOR = 'Wentao Zhan'
@@ -22,7 +22,7 @@ VERSION = '0.1.0'
 
 # What packages are required for this module to be executed?
 REQUIRED = [
-    'rpy2', 'torch', 'numpy', 'scipy', 'sklearn',
+    'rpy2', 'torch', 'numpy', 'scipy', 'scikit-learn',
 ]
 
 # What packages are optional?
