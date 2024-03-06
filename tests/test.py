@@ -1,61 +1,92 @@
 import torch
-import nngls
+#import nngls
 import numpy as np
 import time
+import pandas as pd
 
 def f5(X): return (10*np.sin(np.pi*X[:,0]*X[:,1]) + 20*(X[:,2]-0.5)**2 + 10*X[:,3] +5*X[:,4])/6
 
 sigma = 1
 phi = 3
 tau = 0.01
-theta = [sigma, phi / np.sqrt(2), tau]
+theta = torch.tensor([sigma, phi / np.sqrt(2), tau])
 
 p = 5; funXY = f5
 
-n = 1000
-nn = 20
-batch_size = 50
+t = np.empty(0)
+size_vec = np.empty(0)
+epoch_vec = np.empty(0)
 
-X, Y, coord, cov, corerr = Simulation(n, p, nn, funXY, theta, range = [0,1])
 
-data = make_graph(X, Y, coord, nn)
+for n in [100, 200, 500, 1000, 2000, 5000, 10000, 20000, 50000, 100000]:
+    for rand in range(1, 5 + 1):
+        nn = 20
+        batch_size = 50
 
-train_loader, data_train, data_test = split_data(X, Y, coord, batch_size = batch_size, neighbor_size = 20,
-                                                 test_proportion = 0.2)
+        torch.manual_seed(2023 + rand)
+        X, Y, coord, cov, corerr = Simulation(n, p, nn, funXY, theta, range = [0,1])
+        data = make_graph(X, Y, coord, nn)
+        train_loader, data_train, data_val, data_test = split_data(X, Y, coord, batch_size = batch_size, neighbor_size = 20,
+                                                         test_proportion = 0.2)
 
-start_time = time.time()
-mlp = torch.nn.Sequential(
-            torch.nn.Linear(5, 5),
-            torch.nn.ReLU(),
-            torch.nn.Linear(5, 1),
-        )
-model = nngls(p=p, neighbor_size=nn, coord_dimensions=2, mlp = mlp, theta = torch.tensor(theta))
-optimizer = torch.optim.Adam(model.parameters(), lr=0.0001)
+        start_time = time.time()
+        mlp = torch.nn.Sequential(
+                    torch.nn.Linear(p, 5),
+                    torch.nn.ReLU(),
+                    torch.nn.Linear(5, 1)
+                )
+        model = nngls(p=p, neighbor_size=nn, coord_dimensions=2, mlp = mlp, theta = torch.tensor([1.5, 5, 0.1]))
+        optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
+        Update_init = 0; Update_step = 1; Update_bound = 0.1; patience_half = 5; patience = 10;
+        lr_scheduler = LRScheduler(optimizer, patience = patience_half, factor=0.5)
+        early_stopping = EarlyStopping(patience=patience, min_delta = 0.001)
 
-training_log = {'loss': [], 'metric': [], 'sigma': [], 'phi': [], 'tau': []}
+        training_log = {'val_loss': [], 'pred_loss': [], 'sigma': [], 'phi': [], 'tau': []}
 
-# Training/evaluation loop
-for epoch in range(100):
-    # Train for one epoch
-    model.train()
-    for batch_idx, batch in enumerate(train_loader):
-        print(batch_idx)
-        optimizer.zero_grad()
-        decorrelated_preds, decorrelated_targets, preds = model(batch)
-        loss = torch.nn.functional.mse_loss(decorrelated_preds[:batch_size], decorrelated_targets[:batch_size])
-        metric = torch.nn.functional.mse_loss(preds[:batch_size], batch.y[:batch_size])
-        loss.backward()
-        optimizer.step()
-    # Compute predictions on held-out test test
-    model.eval()
-    decorrelated_preds, decorrelated_targets, preds = model(data_test)
-    training_log["loss"].append(torch.nn.functional.mse_loss(decorrelated_preds, decorrelated_targets).item())
-    training_log["metric"].append(torch.nn.functional.mse_loss(preds, data_test.y).item())
-    training_log["sigma"].append(model.theta[0])
-    training_log["phi"].append(model.theta[1])
-    training_log["tau"].append(model.theta[2])
-end_time = time.time()
-usertime2 = end_time - start_time
+        # Training/evaluation loop
+        for epoch in range(100):
+            print(epoch)
+            # Train for one epoch
+            model.train()
+            if (epoch >= Update_init) & (epoch % Update_step == 0):
+                model.theta.requires_grad = True
+            else:
+                model.theta.requires_grad = False
+            for batch_idx, batch in enumerate(train_loader):
+                optimizer.zero_grad()
+                decorrelated_preds, decorrelated_targets, est = model(batch)
+                loss = torch.nn.functional.mse_loss(decorrelated_preds[:batch_size], decorrelated_targets[:batch_size])
+                metric = torch.nn.functional.mse_loss(est[:batch_size], batch.y[:batch_size])
+                loss.backward()
+                optimizer.step()
+            # Compute predictions on held-out test test
+            model.eval()
+            _, _, val_est = model(data_val)
+            val_loss = torch.nn.functional.mse_loss(val_est, data_val.y).item()
+            lr_scheduler(val_loss)
+            early_stopping(val_loss)
+            if early_stopping.early_stop:
+                print('End at epoch' + str(epoch))
+                break
+            _, _, pred_test = model(data_test)
+            pred_loss = torch.nn.functional.mse_loss(pred_test, data_test.y).item()
+            training_log["val_loss"].append(val_loss)
+            training_log["pred_loss"].append(pred_loss)
+            training_log["sigma"].append(model.theta[0].item())
+            training_log["phi"].append(model.theta[1].item())
+            training_log["tau"].append(model.theta[2].item())
+        end_time = time.time()
+        usertime = end_time - start_time
+        t = np.append(t, usertime)
+        size_vec = np.append(size_vec, n)
+        epoch_vec = np.append(epoch_vec, epoch)
+
+        df = pd.DataFrame({'time': t,
+                   'epoch': epoch_vec,
+                   'size': size_vec
+                   })
+
+        df.to_csv("/Users/zhanwentao/Documents/Abhi/NN/NN-GLS/running_time.csv")
 
 
 if False:
@@ -78,23 +109,28 @@ if False:
 
     gather_neighbor_positions = GatherNeighborPositionsConv(20, 2)
     neighbor_positions = gather_neighbor_positions(
-        batch.pos, batch.edge_index, batch.edge_attr
+        batch.pos, batch.edge_index, batch.edge_attr, batch.batch_size
     )
 
     gather_neighbor_outputs1 = GatherNeighborInfoConv1(20)
     gather_neighbor_outputs = GatherNeighborInfoConv(20)
-    neighbor_outputs = gather_neighbor_outputs(batch.o.double(), batch.edge_index, batch.edge_attr)
+    neighbor_outputs = gather_neighbor_outputs(
+        batch.o.double(), batch.edge_index, batch.edge_attr, batch.batch_size
+    )
 
     compute_covariance_vectors = CovarianceVectorConv(nn, theta)
-    compute_covariance_vectors(batch.pos, batch.edge_index, batch.edge_attr)
 
     compute_inverse_cov_matrices = InverseCovMatrixFromPositions(nn, 2, theta)
     Inv_Cov_Ni_Ni = compute_inverse_cov_matrices(neighbor_positions, batch.edge_list)
-    Cov_i_Ni = compute_covariance_vectors(batch.pos, batch.edge_index, batch.edge_attr)
+    Cov_i_Ni = compute_covariance_vectors(
+        batch.pos, batch.edge_index, batch.edge_attr, batch.batch_size
+    )
 
     B_i = torch.matmul(Inv_Cov_Ni_Ni, Cov_i_Ni.unsqueeze(2)).squeeze()
     F_i = theta[0] + theta[2] - torch.sum(B_i * Cov_i_Ni, dim=1)
-    y_neighbor = gather_neighbor_outputs(batch.y, batch.edge_index, batch.edge_attr)
+    y_neighbor = gather_neighbor_outputs(
+        batch.y, batch.edge_index, batch.edge_attr , batch.batch_size
+    )
     y_decor = (batch.y - torch.sum(y_neighbor * B_i, dim=1)) / torch.sqrt(F_i)
 
     if False:
@@ -103,4 +139,3 @@ if False:
         v_vectors = negative_extended_b_vectors / torch.sqrt(F_i.unsqueeze(1))
         neighbor_outputs = gather_neighbor_outputs1(batch.y, batch.edge_index, batch.edge_attr)
         decorrelated_preds_1 = (v_vectors * neighbor_outputs).sum(dim=1)
-

@@ -9,6 +9,68 @@ from torch_geometric.loader import NeighborLoader
 import warnings
 from torch_geometric.nn import MessagePassing
 
+class LRScheduler():
+    """
+    Learning rate scheduler. If the validation loss does not decrease for the
+    given number of `patience` epochs, then the learning rate will decrease by
+    by given `factor`.
+    """
+    def __init__(
+        self, optimizer, patience=5, min_lr=1e-6, factor=0.5
+    ):
+        """
+        new_lr = old_lr * factor
+        :param optimizer: the optimizer we are using
+        :param patience: how many epochs to wait before updating the lr
+        :param min_lr: least lr value to reduce to while updating
+        :param factor: factor by which the lr should be updated
+        """
+        self.optimizer = optimizer
+        self.patience = patience
+        self.min_lr = min_lr
+        self.factor = factor
+        self.lr_scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
+                self.optimizer,
+                mode='min',
+                patience=self.patience,
+                factor=self.factor,
+                min_lr=self.min_lr,
+                verbose=True
+            )
+    def __call__(self, val_loss):
+        self.lr_scheduler.step(val_loss)
+
+class EarlyStopping():
+    """
+    Early stopping to stop the training when the loss does not improve after
+    certain epochs.
+    """
+    def __init__(self, patience=5, min_delta=0):
+        """
+        :param patience: how many epochs to wait before stopping when loss is
+               not improving
+        :param min_delta: minimum difference between new loss and old loss for
+               new loss to be considered as an improvement
+        """
+        self.patience = patience
+        self.min_delta = min_delta
+        self.counter = 0
+        self.best_loss = None
+        self.early_stop = False
+    def __call__(self, val_loss):
+        if self.best_loss == None:
+            self.best_loss = val_loss
+        elif self.best_loss - val_loss > self.min_delta:
+            self.best_loss = val_loss
+            # reset counter if validation loss improves
+            self.counter = 0
+        elif self.best_loss - val_loss < self.min_delta:
+            self.counter += 1
+            print(f"INFO: Early stopping counter {self.counter} of {self.patience}")
+            if self.counter >= self.patience:
+                print('INFO: Early stopping')
+                self.early_stop = True
+
 class Sparse_B():
     def __init__(self, B, Ind_list):
         self.B = B
@@ -106,7 +168,7 @@ def rmvn(m: int,
         res = torch.matmul(torch.randn(m, p), D.t()) + mu
     elif isinstance(cov, NNGP_cov):
         if sparse:
-            res = cov.correlate(np.random.randn(m, p).reshape(-1))
+            res = cov.correlate(torch.randn(m, p).reshape(-1))
         else:
             warnings.warn("To be implemented.")
     return  res.reshape(-1)
@@ -211,17 +273,17 @@ def make_cov_full(theta: tuple[float, float, float],
         dist = torch.Tensor(dist)
         n = 1
     else:
-        n = dist.shape[0]
+        n = dist.shape[-1]
     cov = sigma_sq * torch.exp(-phi * dist)
     if nuggets:
-        cov += tau_sq * torch.eye(n).squeeze()
+        shape_temp = list(cov.shape)[:-2] + [1 ,1]
+        cov += tau_sq * torch.eye(n).repeat(*shape_temp).squeeze()
     return cov
 
 def make_cov(theta: tuple[float, float, float],
              coord: torch.Tensor,
              NNGP: Optional[bool] = True,
-             neighbor_size: int = 20,
-             sparse: Optional[bool] = True
+             neighbor_size: int = 20
              ) -> torch.Tensor:
     dist = distance(coord, coord)
 
@@ -230,7 +292,7 @@ def make_cov(theta: tuple[float, float, float],
         return cov
     else:
         rank = make_rank(coord, neighbor_size)
-        I_B, F_diag = make_bf(coord, rank, theta, sparse) #### could merge into one step
+        I_B, F_diag = make_bf(coord, rank, theta) #### could merge into one step
         cov = NNGP_cov(I_B.B, F_diag, I_B.Ind_list)
         return cov
 
@@ -245,10 +307,10 @@ def Simulation(n: int, p:int,
     sigma_sq, phi, tau = theta
     tau_sq = tau * sigma_sq
 
-    cov = make_cov(theta, coord, neighbor_size, sparse = sparse)
+    cov = make_cov(theta, coord, neighbor_size)
     X = torch.rand(n, p)
     corerr = rmvn(1, torch.zeros(n), cov, sparse)
-    Y = fx(X).reshape(-1) + corerr + np.sqrt(tau_sq) * np.random.randn(n)
+    Y = fx(X).reshape(-1) + corerr + torch.sqrt(tau_sq) * torch.randn(n)
 
     return X, Y, coord, cov, corerr
 
@@ -291,17 +353,22 @@ def split_data(X: torch.Tensor,
     n = X.shape[0]
     if batch_size is None:
         batch_size  = int(n*(1 - test_proportion)/20)
-    X_train, X_test, Y_train, Y_test, coord_train, coord_test = train_test_split(
-        X, Y, coord, test_size=test_proportion
+    X_train_val, X_test, Y_train_val, Y_test, coord_train_val, coord_test = train_test_split(
+        X, Y, coord, test_size = test_proportion
+    )
+
+    X_train, X_val, Y_train, Y_val, coord_train, coord_val = train_test_split(
+        X_train_val, Y_train_val, coord_train_val, test_size = val_proportion/(1 - test_proportion)
     )
 
     data_train = make_graph(X_train, Y_train, coord_train, neighbor_size)
+    data_val = make_graph(X_val, Y_val, coord_val, neighbor_size)
     data_test = make_graph(X_test, Y_test, coord_test, neighbor_size)
 
     train_loader = NeighborLoader(data_train, input_nodes=torch.tensor(range(data_train.x.shape[0])),
                                   num_neighbors=[-1], batch_size=batch_size, replace=False, shuffle=True)
 
-    return train_loader, data_train, data_test
+    return train_loader, data_train, data_val, data_test
 
 def edit_batch(batch): #### Change to a method
     edge_list = list()
@@ -316,8 +383,11 @@ class GatherNeighborPositionsConv(MessagePassing):
         self.neighbor_size = neighbor_size
         self.coord_dimensions = coord_dimensions
 
-    def forward(self, pos, edge_index, edge_attr):
-        return self.propagate(edge_index, pos=pos, edge_attr=edge_attr)
+    def forward(self, pos, edge_index, edge_attr, batch_size):
+        positions = self.propagate(edge_index, pos=pos, edge_attr=edge_attr)[range(batch_size), :]
+        zero_index = torch.where(positions == 0)
+        positions[zero_index] = torch.rand(zero_index[0].shape) * 10000 * (positions.max() - positions.min())
+        return positions
 
     def message(self, pos_j, edge_attr):
         num_edges = edge_attr.shape[0]
@@ -364,8 +434,8 @@ class GatherNeighborInfoConv(MessagePassing):
         super().__init__(aggr="sum")
         self.neighbor_size = neighbor_size
 
-    def forward(self, y, edge_index, edge_attr):
-        out = self.propagate(edge_index, y = y.reshape(-1,1), edge_attr=edge_attr)
+    def forward(self, y, edge_index, edge_attr, batch_size):
+        out = self.propagate(edge_index, y = y.reshape(-1,1), edge_attr=edge_attr)[range(batch_size),:]
         return out
 
     def message(self, y_j, edge_attr):
@@ -382,8 +452,8 @@ class CovarianceVectorConv(MessagePassing):
         self.neighbor_size = neighbor_size
         self.theta = theta
 
-    def forward(self, pos, edge_index, edge_attr):
-        return self.propagate(edge_index, pos = pos, edge_attr=edge_attr)
+    def forward(self, pos, edge_index, edge_attr, batch_size):
+        return self.propagate(edge_index, pos = pos, edge_attr=edge_attr)[range(batch_size),:]
 
     def message(self, pos_i, pos_j, edge_attr):
         num_edges = edge_attr.shape[0]
@@ -406,12 +476,13 @@ class InverseCovMatrixFromPositions(torch.nn.Module):
         neighbor_positions1 = neighbor_positions.unsqueeze(1)
         neighbor_positions2 = neighbor_positions.unsqueeze(2)
         dists = torch.sqrt(torch.sum((neighbor_positions1 - neighbor_positions2) ** 2, axis=-1))
-        cov = make_cov_full(self.theta, dists, nuggets = True) #have to add nuggets
-        cov_final = self.theta[0]*torch.eye(self.neighbor_size).repeat(batch_size, 1, 1)
-        for i in range(batch_size):
-            cov_final[i, edge_list[i].reshape(1, -1, 1), edge_list[i].reshape(1, 1, -1)] = \
-                cov[i, edge_list[i].reshape(1, -1, 1), edge_list[i].reshape(1, 1, -1)]
-        inv_cov_final = torch.linalg.inv(cov_final)
+        cov = make_cov_full(self.theta, dists, nuggets = True) #have to add nuggets (resolved)
+        #cov_final = self.theta[0]*torch.eye(self.neighbor_size).repeat(batch_size, 1, 1)
+        #for i in range(batch_size):
+        #    cov_final[i, edge_list[i].reshape(1, -1, 1), edge_list[i].reshape(1, 1, -1)] = \
+        #        cov[i, edge_list[i].reshape(1, -1, 1), edge_list[i].reshape(1, 1, -1)]
+        #inv_cov_final = torch.linalg.inv(cov_final)
+        inv_cov_final = torch.linalg.inv(cov)
         return inv_cov_final
 
 
@@ -441,23 +512,65 @@ class nngls(torch.nn.Module):
         self.mlp = mlp
 
     def forward(self, batch):
+        if 'batch_size' not in batch.keys:
+            batch.batch_size = batch.x.shape[0] #### can improve
         batch = edit_batch(batch)
-        Cov_i_Ni = self.compute_covariance_vectors(batch.pos, batch.edge_index, batch.edge_attr)
-        coord_neighbor = self.gather_neighbor_positions(batch.pos, batch.edge_index, batch.edge_attr)
+        Cov_i_Ni = self.compute_covariance_vectors(batch.pos, batch.edge_index, batch.edge_attr, batch.batch_size)
+        coord_neighbor = self.gather_neighbor_positions(batch.pos, batch.edge_index, batch.edge_attr, batch.batch_size)
         Inv_Cov_Ni_Ni = self.compute_inverse_cov_matrices(coord_neighbor, batch.edge_list)
 
         B_i = torch.matmul(Inv_Cov_Ni_Ni, Cov_i_Ni.unsqueeze(2)).squeeze()
         F_i = self.theta[0] + self.theta[2] - torch.sum(B_i * Cov_i_Ni, dim = 1)
 
-        y_neighbor = self.gather_neighbor_outputs(batch.y, batch.edge_index, batch.edge_attr)
-        y_decor = (batch.y - torch.sum(y_neighbor * B_i, dim = 1))/torch.sqrt(F_i)
+        y_neighbor = self.gather_neighbor_outputs(batch.y, batch.edge_index, batch.edge_attr, batch.batch_size)
+        y_decor = (batch.y[range(batch.batch_size)] - torch.sum(y_neighbor * B_i, dim = 1))/torch.sqrt(F_i)
         batch.o = self.mlp(batch.x).squeeze()
-        o_neighbor = self.gather_neighbor_outputs(batch.o, batch.edge_index, batch.edge_attr)
-        o_decor = (batch.o - torch.sum(o_neighbor * B_i, dim=1)) / torch.sqrt(F_i)
+        o_neighbor = self.gather_neighbor_outputs(batch.o, batch.edge_index, batch.edge_attr, batch.batch_size)
+        o_decor = (batch.o[range(batch.batch_size)] - torch.sum(o_neighbor * B_i, dim=1)) / torch.sqrt(F_i)
         preds = batch.o
 
         return y_decor, o_decor, preds
 
+    def estimate(self, X):
+        with torch.no_grad():
+            return self.mlp(X).squeeze()
+
+    def predict(self, data_train, data_test, **kwargs):
+        with torch.no_grad():
+            w_train = data_train.y - self.estimate(data_train.x)
+            w_test, _, _ = krig_pred(w_train, data_train.pos, data_test.pos, self.theta, **kwargs)
+            estimation_test = self.estimate(data_test.x)
+            return estimation_test + w_test
+
+
+def krig_pred(w_train: torch.Tensor,
+              coord_train: torch.Tensor,
+              coord_test: torch.Tensor,
+              theta: tuple[float, float, float],
+              neighbor_size: Optional[int] = 20,
+              q: Optional[float] = 0.95
+              ) -> torch.Tensor:
+    sigma_sq, phi, tau = theta
+    tau_sq = tau * sigma_sq
+    n_test = coord_test.shape[0]
+
+    rank = make_rank(coord_train, neighbor_size, coord_test=coord_test)
+
+    w_test = torch.zeros(n_test)
+    sigma_test = (sigma_sq + tau_sq) * torch.ones(n_test)
+    for i in range(n_test):
+        ind = rank[i, :]
+        cov_sub = make_cov_full(theta, distance(coord_train[ind, :], coord_train[ind, :]), nuggets=True)
+        cov_vec = make_cov_full(theta, distance(coord_train[ind, :], coord_train[i, :])).reshape(-1)
+        bi = torch.linalg.solve(cov_sub, cov_vec)
+        w_test[i] = torch.dot(bi.T, w_train[ind]).squeeze()
+        sigma_test[i] = sigma_test[i] - torch.dot(bi.reshape(-1), cov_vec)
+    p = scipy.stats.norm.ppf((1 + q) / 2, loc=0, scale=1)
+    sigma_test = torch.sqrt(sigma_test)
+    pred_U = w_test + p * sigma_test
+    pred_L = w_test - p * sigma_test
+
+    return w_test, pred_U, pred_L
 
 
 
