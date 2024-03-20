@@ -111,7 +111,6 @@ class nngls_train():
                 self.optimizer.zero_grad()
                 decorrelated_preds, decorrelated_targets, est = self.model(batch)
                 loss = torch.nn.functional.mse_loss(decorrelated_preds[:batch_size], decorrelated_targets[:batch_size])
-                metric = torch.nn.functional.mse_loss(est[:batch_size], batch.y[:batch_size])
                 loss.backward()
                 self.optimizer.step()
             # Compute predictions on held-out test test

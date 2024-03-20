@@ -6,6 +6,7 @@ from typing import Callable, Optional
 from sklearn.model_selection import train_test_split
 import torch_geometric
 from torch_geometric.loader import NeighborLoader
+import math
 import warnings
 
 class LRScheduler():
@@ -59,7 +60,7 @@ class EarlyStopping():
     def __call__(self, val_loss):
         if self.best_loss == None:
             self.best_loss = val_loss
-        elif self.best_loss - val_loss > self.min_delta:
+        elif self.best_loss - val_loss > self.min_delta or math.isnan(self.best_loss):
             self.best_loss = val_loss
             # reset counter if validation loss improves
             self.counter = 0
