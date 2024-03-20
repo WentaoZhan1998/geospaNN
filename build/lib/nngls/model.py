@@ -1,6 +1,7 @@
+from .utils import make_cov_full, distance, edit_batch, krig_pred
+
 import torch
 from torch_geometric.nn import MessagePassing
-from .utils import make_cov_full, distance, edit_batch, krig_pred
 
 class CovarianceVectorConv(MessagePassing):
     def __init__(self, neighbor_size, theta):
