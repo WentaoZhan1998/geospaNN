@@ -5,7 +5,6 @@ nngls/__init__.py
 nngls/main.py
 nngls/model.py
 nngls/utils.py
-nngls/utils_old.py
 nngls.egg-info/PKG-INFO
 nngls.egg-info/SOURCES.txt
 nngls.egg-info/dependency_links.txt
