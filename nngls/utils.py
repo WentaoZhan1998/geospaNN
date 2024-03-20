@@ -1,5 +1,5 @@
-import torch
 import numpy as np
+import torch
 import scipy
 from sklearn.neighbors import NearestNeighbors
 from typing import Callable, Optional
@@ -7,7 +7,6 @@ from sklearn.model_selection import train_test_split
 import torch_geometric
 from torch_geometric.loader import NeighborLoader
 import warnings
-from torch_geometric.nn import MessagePassing
 
 class LRScheduler():
     """
@@ -96,7 +95,7 @@ class Sparse_B():
             for k in range(len(idx)):
                 i = idx[k]
                 ind = self.Ind_list[i,:][self.Ind_list[i,:] >= 0]
-                result[k] = torch.dot(self.B[i,range(len(ind))].reshape(-1),X[ind])
+                result[k] = torch.dot(self.B[i,range(len(ind))].squeeze(),X[ind])
         elif isinstance(X, np.ndarray):
             self.to_numpy()
             if np.ndim(X) == 1:
@@ -127,9 +126,9 @@ class Sparse_B():
             ind = Indlist[i, :]
             id = ind >= 0
             if sum(id) == 0:
-                x = torch.cat((x, y[i].unsqueeze(0)), dim = -1).float()
+                x = torch.cat((x, y[i].unsqueeze(0)), dim = -1)
             else:
-                x = torch.cat((x, (y[i] + torch.dot(x[ind[id]], B[i, :][id])).unsqueeze(0)), dim = -1).float()
+                x = torch.cat((x, (y[i] + torch.dot(x[ind[id]], B[i, :][id])).unsqueeze(0)), dim = -1)
         return x
 
     def Fmul(self, F):
@@ -156,6 +155,20 @@ class NNGP_cov(Sparse_B):
     def correlate(self, x):
         assert x.shape[0] == self.n
         return self.invmul(torch.sqrt(self.F_diag) * x)
+
+    def decorrelate(self, x):
+        assert x.shape[0] == self.n
+        return torch.sqrt(torch.reciprocal(self.F_diag))*self.matmul(x)
+
+class NNGP_cov_np(Sparse_B):
+    def __init__(self, B, F_diag, Ind_list):
+        super().__init__(B = B, Ind_list = Ind_list)
+        assert len(F_diag) == B.shape[0]
+        self.F_diag = F_diag
+
+    def decorrelate(self, x):
+        assert x.shape[0] == self.n
+        return np.sqrt(np.reciprocal(self.F_diag))*self.matmul(x)
 
 def rmvn(m: int,
          mu: torch.Tensor,
@@ -208,6 +221,18 @@ def distance(coord1: torch.Tensor,
     dists = torch.sqrt(torch.sum((coord1 - coord2) ** 2, axis=-1))
     return dists
 
+def distance_np(coord1, coord2):
+    m = coord1.shape[0]
+    n = coord2.shape[0]
+
+    #### Can improve (resolved)
+    coord1 = coord1
+    coord2 = coord2
+    dists = np.zeros((m, n))
+    for i in range(m):
+        dists[i, :] = np.sqrt(np.sum((coord1[i] - coord2) ** 2, axis=1))
+    return dists
+
 def make_bf_from_cov(cov: torch.Tensor,
                      neighbor_size: int,
                      ) -> Sparse_B:
@@ -252,7 +277,8 @@ def make_bf(coord: torch.Tensor,  #### could add a make_bf from cov (resolved)
             continue
         cov_sub = make_cov_full(theta, distance(coord[ind, :], coord[ind, :]), nuggets = True)
         if torch.linalg.matrix_rank(cov_sub) == cov_sub.shape[0]:
-            cov_vec = make_cov_full(theta, distance(coord[ind, :], coord[i, :])).reshape(-1) #### nuggets is not specified since its off-diagonal
+            cov_vec = make_cov_full(theta, distance(coord[ind, :], coord[i, :])).reshape(-1)
+            #### nuggets is not specified since its off-diagonal
             bi = torch.linalg.solve(cov_sub, cov_vec)
             B[i, range(len(ind))] = bi
             ind_list[i, range(len(ind))] = ind
@@ -263,10 +289,37 @@ def make_bf(coord: torch.Tensor,  #### could add a make_bf from cov (resolved)
 
     return I_B, F
 
+def make_bf_np(coord: np.ndarray,  #### could add a make_bf from cov (resolved)
+                rank: np.ndarray,
+                theta: tuple[float, float, float]
+                ) -> Sparse_B:
+    n = coord.shape[0]
+    neighbor_size = rank.shape[1]
+    B = np.zeros((n, neighbor_size))
+    ind_list = np.zeros((n, neighbor_size)).astype(int) - 1
+    F = np.zeros(n)
+    for i in range(n):
+        F[i] = make_cov_full(theta, np.array([0]), nuggets = True)
+        ind = rank[i, :][rank[i, :] <= i]
+        if len(ind) == 0:
+            continue
+        cov_sub = make_cov_full(theta, distance_np(coord[ind, :], coord[ind, :]), nuggets = True)
+        if np.linalg.matrix_rank(cov_sub) == cov_sub.shape[0]:
+            cov_vec = make_cov_full(theta, distance_np(coord[ind, :], coord[i, :].reshape(1, -1))).reshape(-1) #### nuggets is not specified since its off-diagonal
+            bi = np.linalg.solve(cov_sub, cov_vec)
+            B[i, range(len(ind))] = bi
+            ind_list[i, range(len(ind))] = ind
+            F[i] = F[i] - np.inner(cov_vec, bi)
+
+    I_B = Sparse_B(np.concatenate([np.ones((n, 1)), -B], axis=1),
+                   np.concatenate([np.arange(0, n).reshape(n, 1), ind_list], axis = 1))
+
+    return I_B, F
+
 def make_cov_full(theta: tuple[float, float, float],
-                  dist: torch.Tensor,
+                  dist: torch.Tensor | np.ndarray,
                   nuggets: Optional[bool] = False,
-                  ) -> torch.Tensor:
+                  ) -> torch.Tensor | np.ndarray:
     sigma_sq, phi, tau = theta
     tau_sq = tau * sigma_sq
     if isinstance(dist, float) or isinstance(dist, int):
@@ -274,10 +327,16 @@ def make_cov_full(theta: tuple[float, float, float],
         n = 1
     else:
         n = dist.shape[-1]
-    cov = sigma_sq * torch.exp(-phi * dist)
+    if isinstance(dist, torch.Tensor):
+        cov = sigma_sq * torch.exp(-phi * dist)
+    else:
+        cov = sigma_sq * np.exp(-phi * dist)
     if nuggets:
         shape_temp = list(cov.shape)[:-2] + [1 ,1]
-        cov += tau_sq * torch.eye(n).repeat(*shape_temp).squeeze()
+        if isinstance(dist, torch.Tensor):
+            cov += tau_sq * torch.eye(n).repeat(*shape_temp).squeeze()
+        else:
+            cov += tau_sq * np.eye(n).squeeze() #### need improvement
     return cov
 
 def make_cov(theta: tuple[float, float, float],
@@ -345,14 +404,10 @@ def make_graph(X: torch.Tensor,
 def split_data(X: torch.Tensor,
                Y: torch.Tensor,
                coord: torch.Tensor,
-               batch_size: Optional[int] = None,
                neighbor_size: Optional[int] = 20,
                val_proportion: float = 0.2,
                test_proportion: float = 0.2
                ) -> tuple[torch_geometric.data.Data, torch_geometric.data.Data]:
-    n = X.shape[0]
-    if batch_size is None:
-        batch_size  = int(n*(1 - test_proportion)/20)
     X_train_val, X_test, Y_train_val, Y_test, coord_train_val, coord_test = train_test_split(
         X, Y, coord, test_size = test_proportion
     )
@@ -365,10 +420,16 @@ def split_data(X: torch.Tensor,
     data_val = make_graph(X_val, Y_val, coord_val, neighbor_size)
     data_test = make_graph(X_test, Y_test, coord_test, neighbor_size)
 
-    train_loader = NeighborLoader(data_train, input_nodes=torch.tensor(range(data_train.x.shape[0])),
-                                  num_neighbors=[-1], batch_size=batch_size, replace=False, shuffle=True)
+    return data_train, data_val, data_test
 
-    return train_loader, data_train, data_val, data_test
+def split_loader(data: torch_geometric.data.Data,
+                 batch_size: Optional[int] = None):
+    if batch_size is None:
+        batch_size  = int(data.x.shape[0]/20)
+    loader = NeighborLoader(data,
+                            input_nodes=torch.tensor(range(data.x.shape[0])),num_neighbors=[-1],
+                            batch_size=batch_size, replace=False, shuffle=True)
+    return loader
 
 def edit_batch(batch): #### Change to a method
     edge_list = list()
@@ -377,171 +438,49 @@ def edit_batch(batch): #### Change to a method
     batch.edge_list = edge_list
     return batch
 
-class GatherNeighborPositionsConv(MessagePassing):
-    def __init__(self, neighbor_size, coord_dimensions):
-        super().__init__(aggr="sum")
-        self.neighbor_size = neighbor_size
-        self.coord_dimensions = coord_dimensions
+def theta_update(theta, residual, coord,
+                 neighbor_size: Optional[int] = 20):
+    residual = residual.detach().numpy()
+    coord = coord.detach().numpy()
+    theta = theta.detach().numpy()
+    n_train = residual.shape[0]
+    dist = distance_np(coord, coord)
+    rank = make_rank(coord, neighbor_size)
+    print('Theta updated from')
+    print(theta)
+    def likelihood(theta):
+        sigma, phi, tau = theta
+        cov = sigma * (np.exp(-phi * dist) + tau * np.eye(n_train))  # need dist, n
 
-    def forward(self, pos, edge_index, edge_attr, batch_size):
-        positions = self.propagate(edge_index, pos=pos, edge_attr=edge_attr)[range(batch_size), :]
-        zero_index = torch.where(positions == 0)
-        positions[zero_index] = torch.rand(zero_index[0].shape) * 10000 * (positions.max() - positions.min())
-        return positions
+        term1 = 0
+        term2 = 0
+        for i in range(n_train):
+            ind = rank[i, :][rank[i, :] <= i]
+            id = np.append(ind, i)
 
-    def message(self, pos_j, edge_attr):
-        num_edges = edge_attr.shape[0]
-        msg = torch.zeros(num_edges, self.neighbor_size * self.coord_dimensions)
-        col_idc = edge_attr.flatten() * self.coord_dimensions
-        row_idc = torch.tensor(range(num_edges))
-        msg[
-            row_idc.unsqueeze(1), col_idc.unsqueeze(1) + torch.tensor(range(self.coord_dimensions))
-        ] = pos_j
-        return msg
+            sub_cov = cov[ind, :][:, ind]
+            if np.linalg.det(sub_cov):
+                bi = np.linalg.solve(cov[ind, :][:, ind], cov[ind, i])
+            else:
+                bi = np.zeros(ind.shape)
+            I_B_i = np.append(-bi, 1)
+            F_i = cov[i, i] - np.inner(cov[ind, i], bi)
+            decor_res = np.sqrt(np.reciprocal(F_i)) * np.dot(I_B_i, residual[id])
+            term1 += np.log(F_i)
+            term2 += decor_res ** 2
+        return (term1 + term2)
+    def constraint1(x):
+        return x[0]
+    def constraint2(x):
+        return x[1]
+    def constraint3(x):
+        return x[2]
 
-class GatherNeighborInfoConv1(MessagePassing):
-    """
-    The output of node i will be a tensor of shape (neighbor_size+1,) where the j-th row contains
-    the output of the (j+1)-th neighbor of node i. The first row will contain the output of node i.
-    Assumes that the outputs are already computed.
-    """
+    cons = [{'type': 'ineq', 'fun': constraint1},
+            {'type': 'ineq', 'fun': constraint3}]
 
-    def __init__(self, neighbor_size):
-        super().__init__(aggr="sum")
-        self.neighbor_size = neighbor_size
-
-    def forward(self, y, edge_index, edge_attr):
-        out = self.propagate(edge_index, y = y.reshape(-1,1), edge_attr=edge_attr)
-        out[:, 0] += y.squeeze()
-        return out
-
-    def message(self, y_j, edge_attr):
-        num_edges = edge_attr.shape[0]
-        msg = torch.zeros(num_edges, self.neighbor_size + 1)
-        col_idc = edge_attr.flatten() + 1
-        row_idc = torch.tensor(range(num_edges))
-        msg[row_idc, col_idc] = y_j.squeeze()
-        return msg
-
-class GatherNeighborInfoConv(MessagePassing):
-    """
-    The output of node i will be a tensor of shape (neighbor_size+1,) where the j-th row contains
-    the output of the (j+1)-th neighbor of node i. The first row will contain the output of node i.
-    Assumes that the outputs are already computed.
-    """
-
-    def __init__(self, neighbor_size):
-        super().__init__(aggr="sum")
-        self.neighbor_size = neighbor_size
-
-    def forward(self, y, edge_index, edge_attr, batch_size):
-        out = self.propagate(edge_index, y = y.reshape(-1,1), edge_attr=edge_attr)[range(batch_size),:]
-        return out
-
-    def message(self, y_j, edge_attr):
-        num_edges = edge_attr.shape[0]
-        msg = torch.zeros(num_edges, self.neighbor_size).double()
-        col_idc = edge_attr.flatten()
-        row_idc = torch.tensor(range(num_edges))
-        msg[row_idc, col_idc] = y_j.squeeze().double()
-        return msg
-
-class CovarianceVectorConv(MessagePassing):
-    def __init__(self, neighbor_size, theta):
-        super().__init__(aggr="sum")
-        self.neighbor_size = neighbor_size
-        self.theta = theta
-
-    def forward(self, pos, edge_index, edge_attr, batch_size):
-        return self.propagate(edge_index, pos = pos, edge_attr=edge_attr)[range(batch_size),:]
-
-    def message(self, pos_i, pos_j, edge_attr):
-        num_edges = edge_attr.shape[0]
-        msg = torch.zeros(num_edges, self.neighbor_size)
-        col_idc = edge_attr.flatten()
-        row_idc = torch.tensor(range(num_edges))
-        msg[row_idc, col_idc] = make_cov_full(self.theta, distance(pos_i - pos_j, torch.zeros(1,2))).squeeze()
-        return msg
-
-class InverseCovMatrixFromPositions(torch.nn.Module):
-    def __init__(self, neighbor_size, coord_dimension, theta):
-        super(InverseCovMatrixFromPositions, self).__init__()
-        self.neighbor_size = neighbor_size
-        self.coord_dimension = coord_dimension
-        self.theta = theta
-
-    def forward(self, neighbor_positions, edge_list):
-        batch_size = neighbor_positions.shape[0]
-        neighbor_positions = neighbor_positions.reshape(-1, self.neighbor_size, self.coord_dimension)
-        neighbor_positions1 = neighbor_positions.unsqueeze(1)
-        neighbor_positions2 = neighbor_positions.unsqueeze(2)
-        dists = torch.sqrt(torch.sum((neighbor_positions1 - neighbor_positions2) ** 2, axis=-1))
-        cov = make_cov_full(self.theta, dists, nuggets = True) #have to add nuggets (resolved)
-        #cov_final = self.theta[0]*torch.eye(self.neighbor_size).repeat(batch_size, 1, 1)
-        #for i in range(batch_size):
-        #    cov_final[i, edge_list[i].reshape(1, -1, 1), edge_list[i].reshape(1, 1, -1)] = \
-        #        cov[i, edge_list[i].reshape(1, -1, 1), edge_list[i].reshape(1, 1, -1)]
-        #inv_cov_final = torch.linalg.inv(cov_final)
-        inv_cov_final = torch.linalg.inv(cov)
-        return inv_cov_final
-
-
-class nngls(torch.nn.Module):
-    def __init__(
-        self,
-        p: int,
-        neighbor_size: int,
-        coord_dimensions: int,
-        mlp: torch.nn.Module,
-        theta: tuple[float, float, float]
-    ):
-        super(nngls, self).__init__()
-        self.p = p
-        self.neighbor_size = neighbor_size
-        self.coord_dimensions = coord_dimensions
-        self.theta = torch.nn.Parameter(torch.Tensor(theta)) # split to accelerate?
-        self.compute_covariance_vectors = CovarianceVectorConv(neighbor_size, self.theta)
-        self.compute_inverse_cov_matrices = InverseCovMatrixFromPositions(
-            neighbor_size, coord_dimensions, self.theta
-        )
-        self.gather_neighbor_positions = GatherNeighborPositionsConv(neighbor_size, coord_dimensions)
-        self.gather_neighbor_outputs = GatherNeighborInfoConv(neighbor_size)
-        self.gather_neighbor_targets = GatherNeighborInfoConv(neighbor_size)
-
-        # Simple MLP to map features to scalars
-        self.mlp = mlp
-
-    def forward(self, batch):
-        if 'batch_size' not in batch.keys:
-            batch.batch_size = batch.x.shape[0] #### can improve
-        batch = edit_batch(batch)
-        Cov_i_Ni = self.compute_covariance_vectors(batch.pos, batch.edge_index, batch.edge_attr, batch.batch_size)
-        coord_neighbor = self.gather_neighbor_positions(batch.pos, batch.edge_index, batch.edge_attr, batch.batch_size)
-        Inv_Cov_Ni_Ni = self.compute_inverse_cov_matrices(coord_neighbor, batch.edge_list)
-
-        B_i = torch.matmul(Inv_Cov_Ni_Ni, Cov_i_Ni.unsqueeze(2)).squeeze()
-        F_i = self.theta[0] + self.theta[2] - torch.sum(B_i * Cov_i_Ni, dim = 1)
-
-        y_neighbor = self.gather_neighbor_outputs(batch.y, batch.edge_index, batch.edge_attr, batch.batch_size)
-        y_decor = (batch.y[range(batch.batch_size)] - torch.sum(y_neighbor * B_i, dim = 1))/torch.sqrt(F_i)
-        batch.o = self.mlp(batch.x).squeeze()
-        o_neighbor = self.gather_neighbor_outputs(batch.o, batch.edge_index, batch.edge_attr, batch.batch_size)
-        o_decor = (batch.o[range(batch.batch_size)] - torch.sum(o_neighbor * B_i, dim=1)) / torch.sqrt(F_i)
-        preds = batch.o
-
-        return y_decor, o_decor, preds
-
-    def estimate(self, X):
-        with torch.no_grad():
-            return self.mlp(X).squeeze()
-
-    def predict(self, data_train, data_test, **kwargs):
-        with torch.no_grad():
-            w_train = data_train.y - self.estimate(data_train.x)
-            w_test, _, _ = krig_pred(w_train, data_train.pos, data_test.pos, self.theta, **kwargs)
-            estimation_test = self.estimate(data_test.x)
-            return estimation_test + w_test
-
+    res = scipy.optimize.minimize(likelihood, theta, constraints=cons)
+    return res.x
 
 def krig_pred(w_train: torch.Tensor,
               coord_train: torch.Tensor,

@@ -2,6 +2,8 @@ LICENSE
 README.md
 setup.py
 nngls/__init__.py
+nngls/main.py
+nngls/model.py
 nngls/utils.py
 nngls/utils_old.py
 nngls.egg-info/PKG-INFO
