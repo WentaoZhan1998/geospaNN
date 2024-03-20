@@ -22,7 +22,7 @@ VERSION = '0.1.0'
 
 # What packages are required for this module to be executed?
 REQUIRED = [
-    'rpy2', 'torch', 'numpy', 'scipy', 'scikit-learn',
+    'torch', 'numpy', 'scipy', 'scikit-learn',
 ]
 
 # What packages are optional?

@@ -15,7 +15,6 @@ Classifier: Programming Language :: Python :: Implementation :: PyPy
 Requires-Python: >=3.6.0
 Description-Content-Type: text/markdown
 License-File: LICENSE
-Requires-Dist: rpy2
 Requires-Dist: torch
 Requires-Dist: numpy
 Requires-Dist: scipy
