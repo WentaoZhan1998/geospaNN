@@ -175,14 +175,14 @@ def rmvn(m: int,
          mu: torch.Tensor,
          cov: torch.Tensor | NNGP_cov,
          sparse: Optional[bool] = True):
-    p = len(mu)
+    n = len(mu)
     if isinstance(cov, torch.Tensor):
-        if p >= 2000: warnings.warn("Too large for cholesky decomposition, please try to use NNGP")
+        if n >= 2000: warnings.warn("Too large for cholesky decomposition, please try to use NNGP")
         D = torch.linalg.cholesky(cov)
-        res = torch.matmul(torch.randn(m, p), D.t()) + mu
+        res = torch.matmul(torch.randn(m, n), D.t()) + mu
     elif isinstance(cov, NNGP_cov):
         if sparse:
-            res = cov.correlate(torch.randn(m, p).reshape(-1))
+            res = cov.correlate(torch.randn(m, n).reshape(-1))
         else:
             warnings.warn("To be implemented.")
     return  res.reshape(-1)
@@ -439,11 +439,11 @@ def edit_batch(batch): #### Change to a method
     batch.edge_list = edge_list
     return batch
 
-def theta_update(theta, residual, coord,
+def theta_update(theta0, residual, coord,
                  neighbor_size: Optional[int] = 20):
     residual = residual.detach().numpy()
     coord = coord.detach().numpy()
-    theta = theta.detach().numpy()
+    theta = theta0.detach().numpy()
     n_train = residual.shape[0]
     dist = distance_np(coord, coord)
     rank = make_rank(coord, neighbor_size)
@@ -451,7 +451,7 @@ def theta_update(theta, residual, coord,
     print(theta)
     def likelihood(theta):
         sigma, phi, tau = theta
-        cov = sigma * (np.exp(-phi * dist) + tau * np.eye(n_train))  # need dist, n
+        cov = sigma * (np.exp(-phi * dist)) + tau * np.eye(n_train)  # need dist, n
 
         term1 = 0
         term2 = 0
@@ -470,17 +470,9 @@ def theta_update(theta, residual, coord,
             term1 += np.log(F_i)
             term2 += decor_res ** 2
         return (term1 + term2)
-    def constraint1(x):
-        return x[0]
-    def constraint2(x):
-        return x[1]
-    def constraint3(x):
-        return x[2]
 
-    cons = [{'type': 'ineq', 'fun': constraint1},
-            {'type': 'ineq', 'fun': constraint3}]
-
-    res = scipy.optimize.minimize(likelihood, theta, constraints=cons)
+    res = scipy.optimize.minimize(likelihood, theta, method = 'L-BFGS-B',
+                                  bounds = [(0, None), (0, None), (0, None)])
     return res.x
 
 def krig_pred(w_train: torch.Tensor,

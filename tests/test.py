@@ -19,23 +19,40 @@ nn = 20
 batch_size = 50
 
 torch.manual_seed(2023 + rand)
-X, Y, coord, cov, corerr = Simulation(n, p, nn, funXY, theta, range=[0, 1])
+X, Y, coord, cov, corerr = Simulation(n, p, nn, funXY, theta, range=[0, 10])
+if False:
+    np.random.seed(2023+rand)
+    X, Y, I_B, F_diag, rank, coord, cov, corerr = Simulate(n, p, funXY, nn, theta.detach().numpy(), method=method, a=0,
+                                                                 b=10, sparse = Sparse)
+    corerr = torch.from_numpy(corerr)
+    coord = torch.from_numpy(coord)
+    id = range(int(n))
+    print(BRISC_estimation(corerr[id].detach().numpy(), None, coord[id,:].detach().numpy())[1])
+    theta_update(torch.tensor([1, 1.5, 0.01]), corerr[id], coord[id,:], neighbor_size = 20)
 data = make_graph(X, Y, coord, nn)
 data_train, data_val, data_test = split_data(X, Y, coord, neighbor_size=20,
                                              test_proportion=0.2)
 
 mlp = torch.nn.Sequential(
-    torch.nn.Linear(p, 5),
+    torch.nn.Linear(p, 50),
     torch.nn.ReLU(),
-    torch.nn.Linear(5, 1)
+    torch.nn.Linear(50, 20),
+    torch.nn.ReLU(),
+    torch.nn.Linear(20, 10),
+    torch.nn.ReLU(),
+    torch.nn.Linear(10, 1),
 )
 nn_model = nn_train(mlp, lr =  0.01, min_delta = 0.001)
 training_log = nn_model.train(data_train, data_val, data_test)
 theta_update(torch.tensor([1, 1.5, 0.01]), mlp(data_train.x).squeeze() - data_train.y, data_train.pos, neighbor_size = 20)
 mlp = torch.nn.Sequential(
-    torch.nn.Linear(p, 5),
+    torch.nn.Linear(p, 50),
     torch.nn.ReLU(),
-    torch.nn.Linear(5, 1)
+    torch.nn.Linear(50, 20),
+    torch.nn.ReLU(),
+    torch.nn.Linear(20, 10),
+    torch.nn.ReLU(),
+    torch.nn.Linear(10, 1),
 )
 model = nngls(p=p, neighbor_size=nn, coord_dimensions=2, mlp=mlp, theta=torch.tensor([1.5, 5, 0.1]))
 nngls_model = nngls_train(model, lr =  0.01, min_delta = 0.001)
@@ -45,20 +62,25 @@ training_log = nngls_model.train(data_train, data_val, data_test,
 training_log = {'val_loss': [], 'pred_loss': [], 'sigma': [], 'phi': [], 'tau': []}
 
 if False:
-    residual = data_train.y - model(data_train)[2]
-    residual = residual.detach().numpy()
-    coord = data_train.pos.detach().numpy()
+    theta0 = torch.tensor([sigma, phi / np.sqrt(2), tau])
+    neighbor_size = nn
+    theta = theta0.detach().numpy()
+    residual = data_train.y - mlp(data_train.x).squeeze()
+    coord = data_train.pos
+    residual = residual.detach().numpy() + 0.1
+    coord = coord.detach().numpy()
+    n_train = residual.shape[0]
     dist = distance_np(coord, coord)
-    rank = make_rank(data_train.pos, model.neighbor_size)
-
-
-    def test2(theta):
+    rank = make_rank(coord, neighbor_size)
+    print('Theta updated from')
+    print(theta)
+    def likelihood(theta):
         sigma, phi, tau = theta
-        cov = sigma * (np.exp(-phi * dist) + tau * np.eye(600))  # need dist, n
+        cov = sigma * (np.exp(-phi * dist)) + tau * np.eye(n_train)  # need dist, n
 
         term1 = 0
         term2 = 0
-        for i in range(600):
+        for i in range(n_train):
             ind = rank[i, :][rank[i, :] <= i]
             id = np.append(ind, i)
 
@@ -67,34 +89,104 @@ if False:
                 bi = np.linalg.solve(cov[ind, :][:, ind], cov[ind, i])
             else:
                 bi = np.zeros(ind.shape)
-            I_B_i = np.append(-bi, 1)
-            F_i = cov[i, i] - np.inner(cov[ind, i], bi)
-            decor_res = np.sqrt(np.reciprocal(F_i)) * np.dot(I_B_i, residual[id])
-            term1 += np.log(F_i)
+            I_Bi = np.append(-bi, 1)
+            Fi = cov[i, i] - np.inner(cov[ind, i], bi)
+            decor_res = np.sqrt(np.reciprocal(Fi)) * np.dot(I_Bi, residual[id])
+            term1 += np.log(Fi)
             term2 += decor_res ** 2
         return (term1 + term2)
 
+    i = 0
+    def likelihood_k(theta):
+        sigma, phi, tau = theta
+        cov = sigma * (np.exp(-phi * dist)) + tau * np.eye(n_train)  # need dist, n
+
+        term1 = 0
+        term2 = 0
+
+        ind = rank[i, :][rank[i, :] <= i]
+        id = np.append(ind, i)
+
+        sub_cov = cov[ind, :][:, ind]
+        if np.linalg.det(sub_cov):
+            bi = np.linalg.solve(cov[ind, :][:, ind], cov[ind, i])
+        else:
+            bi = np.zeros(ind.shape)
+        I_Bi = np.append(-bi, 1)
+        Fi = cov[i, i] - np.inner(cov[ind, i], bi)
+        decor_res = np.sqrt(np.reciprocal(Fi)) * np.dot(I_Bi, residual[id])
+        term1 += np.log(Fi)
+        term2 += decor_res ** 2
+        return (term1 + term2)
+
+    h = 0.000000001
+    (likelihood_k([theta[0] + h, theta[1], theta[2]]) - likelihood_k([theta[0], theta[1], theta[2]]))/h
+    (likelihood_k([theta[0], theta[1], theta[2] + h]) - likelihood_k([theta[0], theta[1], theta[2]])) / h
+    def grad(theta):
+        sigma, phi, tau = theta
+        n = dist.shape[0]
+        cov = sigma * (np.exp(-phi * dist) + tau * np.eye(n_train))
+        cov_deriv = np.stack([np.exp(-phi * dist),
+                                    -dist*sigma*np.exp(-phi * dist),
+                                    np.eye(n)], axis = 0)
+        deriv = 0
+        for i in range(n_train):
+            ind = rank[i, :][rank[i, :] <= i]
+            id = np.append(ind, i)
+
+            if len(ind) > 0:
+                bi = np.linalg.solve(cov[ind, :][:, ind], cov[ind, i])
+                ci_deriv = cov_deriv[:, ind, i].reshape((-1, len(ind)))
+                Ci_deriv = cov_deriv[:, :, ind][:, ind, :]
+                F_deriv = cov_deriv[:, 0, 0] - 2 * np.dot(ci_deriv, bi) - np.dot(np.dot(Ci_deriv, bi), bi)
+                res_temp = residual[ind]
+            else:
+                bi = np.zeros(ind.shape)
+                ci_deriv = np.zeros(len(theta))
+                F_deriv = cov_deriv[:, 0, 0]
+                res_temp = 0
+            I_Bi = np.append(-bi, 1)
+            Fi = cov[i, i] - np.inner(cov[ind, i], bi)
+            residual_decor = np.dot(I_Bi, residual[id])
+            decor_res = np.sqrt(np.reciprocal(Fi)) * residual_decor
+            deriv_temp = F_deriv/Fi - decor_res*np.sqrt(np.reciprocal(Fi))*(
+                    F_deriv * residual_decor / Fi +
+                    np.dot(ci_deriv,  res_temp)
+            )
+            deriv += deriv_temp
+        return deriv
 
     def constraint1(x):
         return x[0]
-
-
     def constraint2(x):
         return x[1]
-
-
     def constraint3(x):
         return x[2]
-
 
     cons = [{'type': 'ineq', 'fun': constraint1},
             {'type': 'ineq', 'fun': constraint3}]
 
-    res = minimize(test2, np.array([1, 3, 0.01]), constraints=cons)
-    # sigma_temp, phi_temp, tau_temp = theta_hat.detach().numpy()
-    # print('det')
-    # print(np.linalg.det(sigma_temp*(np.exp(-phi_temp * dist) + tau_temp * np.eye(n))))
-    theta_hat_new = res.x
+'''
+jac{callable, ‘2-point’, ‘3-point’, ‘cs’, bool}, optional
+Method for computing the gradient vector. 
+Only for CG, BFGS, Newton-CG, L-BFGS-B, TNC, SLSQP, dogleg, trust-ncg, trust-krylov, trust-exact and trust-constr. 
+
+boundssequence or Bounds, optional
+Bounds on variables for Nelder-Mead, L-BFGS-B, TNC, SLSQP, Powell, trust-constr, and COBYLA methods. 
+'''
+
+    start_time = time.time()
+    res = scipy.optimize.minimize(likelihood, theta, method = 'BFGS',
+                                  constraints=cons)
+    print(res.x)
+    print(time.time() - start_time)
+    start_time = time.time()
+    res = scipy.optimize.minimize(likelihood, theta, method = 'L-BFGS-B',
+                                  bounds = [(0, None), (0, None), (0, None)])
+    print(res.x)
+    print(time.time() - start_time)
+
+BRISC_estimation(residual, None, coord)
 
 ### Running time
 if False:
@@ -211,16 +303,16 @@ if False:
     )
 
     B_i = torch.matmul(Inv_Cov_Ni_Ni, Cov_i_Ni.unsqueeze(2)).squeeze()
-    F_i = theta[0] + theta[2] - torch.sum(B_i * Cov_i_Ni, dim=1)
+    Fi = theta[0] + theta[2] - torch.sum(B_i * Cov_i_Ni, dim=1)
     y_neighbor = gather_neighbor_outputs(
         batch.y, batch.edge_index, batch.edge_attr , batch.batch_size
     )
-    y_decor = (batch.y - torch.sum(y_neighbor * B_i, dim=1)) / torch.sqrt(F_i)
+    y_decor = (batch.y - torch.sum(y_neighbor * B_i, dim=1)) / torch.sqrt(Fi)
 
     if False:
         ones = torch.ones(B_i.size(0), 1)
         negative_extended_b_vectors = torch.cat((ones, -B_i), dim=1)
-        v_vectors = negative_extended_b_vectors / torch.sqrt(F_i.unsqueeze(1))
+        v_vectors = negative_extended_b_vectors / torch.sqrt(Fi.unsqueeze(1))
         neighbor_outputs = gather_neighbor_outputs1(batch.y, batch.edge_index, batch.edge_attr)
         decorrelated_pres_1 = (v_vectors * neighbor_outputs).sum(dim=1)
 
