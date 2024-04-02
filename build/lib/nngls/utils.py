@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import numpy as np
 import torch
 import scipy
@@ -173,7 +175,7 @@ class NNGP_cov_np(Sparse_B):
 
 def rmvn(m: int,
          mu: torch.Tensor,
-         cov: torch.Tensor,
+         cov: torch.Tensor | NNGP_cov,
          sparse: Optional[bool] = True):
     n = len(mu)
     if isinstance(cov, torch.Tensor):
