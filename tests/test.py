@@ -44,7 +44,7 @@ mlp = torch.nn.Sequential(
 )
 nn_model = nn_train(mlp, lr =  0.01, min_delta = 0.001)
 training_log = nn_model.train(data_train, data_val, data_test)
-theta_update(torch.tensor([1, 1.5, 0.01]), mlp(data_train.x).squeeze() - data_train.y, data_train.pos, neighbor_size = 20)
+theta0 = theta_update(torch.tensor([1, 1.5, 0.01]), mlp(data_train.x).squeeze() - data_train.y, data_train.pos, neighbor_size = 20)
 mlp = torch.nn.Sequential(
     torch.nn.Linear(p, 50),
     torch.nn.ReLU(),
@@ -54,10 +54,13 @@ mlp = torch.nn.Sequential(
     torch.nn.ReLU(),
     torch.nn.Linear(10, 1),
 )
-model = nngls(p=p, neighbor_size=nn, coord_dimensions=2, mlp=mlp, theta=torch.tensor([1.5, 5, 0.1]))
+model = nngls(p=p, neighbor_size=nn, coord_dimensions=2, mlp=mlp, theta=torch.tensor(theta0))
 nngls_model = nngls_train(model, lr =  0.01, min_delta = 0.001)
 training_log = nngls_model.train(data_train, data_val, data_test,
-                                 Update_init = 10, Update_step = 10)
+                                 Update_init = 100, Update_step = 10)
+theta_hat = theta_update(torch.tensor(theta0),
+                         model.estimate(data_train.x).squeeze() - data_train.y,
+                         data_train.pos, neighbor_size = nn)
 
 training_log = {'val_loss': [], 'pred_loss': [], 'sigma': [], 'phi': [], 'tau': []}
 

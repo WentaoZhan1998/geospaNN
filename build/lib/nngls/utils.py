@@ -173,7 +173,7 @@ class NNGP_cov_np(Sparse_B):
 
 def rmvn(m: int,
          mu: torch.Tensor,
-         cov: torch.Tensor | NNGP_cov,
+         cov: torch.Tensor,
          sparse: Optional[bool] = True):
     n = len(mu)
     if isinstance(cov, torch.Tensor):
@@ -451,7 +451,7 @@ def theta_update(theta0, residual, coord,
     print(theta)
     def likelihood(theta):
         sigma, phi, tau = theta
-        cov = sigma * (np.exp(-phi * dist)) + tau * np.eye(n_train)  # need dist, n
+        cov = sigma * (np.exp(-phi * dist)) + tau * sigma * np.eye(n_train)  # need dist, n
 
         term1 = 0
         term2 = 0
