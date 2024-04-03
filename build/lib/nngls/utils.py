@@ -68,7 +68,7 @@ class EarlyStopping():
             self.counter = 0
         elif self.best_loss - val_loss < self.min_delta:
             self.counter += 1
-            print(f"INFO: Early stopping counter {self.counter} of {self.patience}")
+            #print(f"INFO: Early stopping counter {self.counter} of {self.patience}")
             if self.counter >= self.patience:
                 print('INFO: Early stopping')
                 self.early_stop = True
@@ -495,7 +495,7 @@ def krig_pred(w_train: torch.Tensor,
     for i in range(n_test):
         ind = rank[i, :]
         cov_sub = make_cov_full(theta, distance(coord_train[ind, :], coord_train[ind, :]), nuggets=True)
-        cov_vec = make_cov_full(theta, distance(coord_train[ind, :], coord_train[i, :])).reshape(-1)
+        cov_vec = make_cov_full(theta, distance(coord_train[ind, :], coord_test[i, :]), nuggets=False).reshape(-1)
         bi = torch.linalg.solve(cov_sub, cov_vec)
         w_test[i] = torch.dot(bi.T, w_train[ind]).squeeze()
         sigma_test[i] = sigma_test[i] - torch.dot(bi.reshape(-1), cov_vec)

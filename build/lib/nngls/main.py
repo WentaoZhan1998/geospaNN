@@ -31,7 +31,7 @@ class nn_train():
         training_log = {'val_loss': [], 'pred_loss': [], 'sigma': [], 'phi': [], 'tau': []}
         for epoch in range(epoch_num):
             # Train for one epoch
-            print(epoch)
+            #print(epoch)
             self.model.train()
 
             for batch_idx, batch in enumerate(train_loader):
@@ -100,7 +100,6 @@ class nngls_train():
         training_log = {'val_loss': [], 'pred_loss': [], 'sigma': [], 'phi': [], 'tau': []}
         for epoch in range(epoch_num):
             # Train for one epoch
-            print(epoch)
             w = data_train.y - self.model.estimate(data_train.x)
             self.model.train()
             self.model.theta.requires_grad = False
