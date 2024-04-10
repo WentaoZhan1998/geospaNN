@@ -456,6 +456,7 @@ def edit_batch(batch): #### Change to a method
 
 def theta_update(theta0, residual, coord,
                  neighbor_size: Optional[int] = 20):
+    warnings.filterwarnings("ignore")
     residual = residual.detach().numpy()
     coord = coord.detach().numpy()
     theta = theta0.detach().numpy()

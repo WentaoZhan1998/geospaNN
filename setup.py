@@ -22,7 +22,8 @@ VERSION = '0.1.0'
 
 # What packages are required for this module to be executed?
 REQUIRED = [
-    'torch', 'torch_scatter', 'torch_sparse', 'torch_geometric', 'numpy', 'scipy', 'scikit-learn',
+    'torch>=2.0.0', 'torch_scatter>=2.1.0', 'torch_sparse>=0.6.0', 'torch_geometric>=2.5.0',
+    'numpy', 'scipy', 'scikit-learn',
 ]
 
 # What packages are optional?
