@@ -12,8 +12,8 @@ from shutil import rmtree
 from setuptools import find_packages, setup, Command
 
 # Package meta-data.
-NAME = 'nngls'
-DESCRIPTION = 'Implementation of nngls'
+NAME = 'pyNNGLS'
+DESCRIPTION = 'A PyThon implementation of NNGLS'
 URL = 'https://github.com/me/myproject'
 EMAIL = 'wzhan3@jhu.edu'
 AUTHOR = 'Wentao Zhan'
@@ -120,7 +120,7 @@ setup(
         'License :: OSI Approved :: MIT License',
         'Programming Language :: Python',
         'Programming Language :: Python :: 3',
-        'Programming Language :: Python :: 3.6',
+        'Programming Language :: Python :: 3.10',
         'Programming Language :: Python :: Implementation :: CPython',
         'Programming Language :: Python :: Implementation :: PyPy'
     ],

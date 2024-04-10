@@ -42,6 +42,19 @@ class LRScheduler():
     def __call__(self, val_loss):
         self.lr_scheduler.step(val_loss)
 
+class DropoutLayer(torch.nn.Module):
+    def __init__(self, p):
+        super().__init__()
+        self.p = p
+
+    def forward(self, input):
+        if self.training:
+            u1 = (np.random.rand(*input.shape)<self.p) / self.p
+            u1 *= u1
+            return u1
+        else:
+            input *= self.p
+
 class EarlyStopping():
     """
     Early stopping to stop the training when the loss does not improve after
