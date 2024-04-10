@@ -148,7 +148,7 @@ plt.show()
 
 
     
-![png](./data./output_figures/output_7_0.png)
+![png](./data/output_figures/output_7_0.png)
     
 
 
@@ -175,7 +175,7 @@ plt.tight_layout()
 
 
     
-![png](./data./output_figures/output_8_0.png)
+![png](./data/output_figures/output_8_0.png)
     
 
 
@@ -226,7 +226,7 @@ plt.tight_layout()
 
 
     
-![png](./data./output_figures/output_9_0.png)
+![png](./data/output_figures/output_9_0.png)
     
 
 
@@ -262,6 +262,6 @@ axes[1].grid(True)
 
 
     
-![png](./data./output_figures/output_10_0.png)
+![png](./data/output_figures/output_10_0.png)
     
 
