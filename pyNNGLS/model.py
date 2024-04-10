@@ -113,7 +113,7 @@ class nngls(torch.nn.Module):
         self.mlp = mlp
 
     def forward(self, batch):
-        if 'batch_size' not in batch.keys():
+        if 'batch_size' not in batch.keys:
             batch.batch_size = batch.x.shape[0] #### can improve
         batch = edit_batch(batch)
         Cov_i_Ni = self.compute_covariance_vectors(batch.pos, batch.edge_index, batch.edge_attr, batch.batch_size)
