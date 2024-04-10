@@ -319,3 +319,14 @@ if False:
         neighbor_outputs = gather_neighbor_outputs1(batch.y, batch.edge_index, batch.edge_attr)
         decorrelated_pres_1 = (v_vectors * neighbor_outputs).sum(dim=1)
 
+def predict(self, data_train, data_test, CI = False, **kwargs):
+    with torch.no_grad():
+        w_train = data_train.y - self.estimate(data_train.x)
+        if CI:
+            w_test, w_u, w_l = pyNNGLS.krig_pred(w_train, data_train.pos, data_test.pos, self.theta, **kwargs)
+            estimation_test = self.estimate(data_test.x)
+            return [estimation_test + w_test, estimation_test + w_u, estimation_test + w_l]
+        else:
+            w_test, _, _ = pyNNGLS.krig_pred(w_train, data_train.pos, data_test.pos, self.theta, **kwargs)
+            estimation_test = self.estimate(data_test.x)
+            return estimation_test + w_test
