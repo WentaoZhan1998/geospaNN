@@ -15,6 +15,7 @@ import torch
 import pyNNGLS
 import numpy as np
 
+# This line defines the Friedman's function.
 def f5(X): return (10*np.sin(np.pi*X[:,0]*X[:,1]) + 20*(X[:,2]-0.5)**2 + 10*X[:,3] +5*X[:,4])/6
 
 sigma = 1
