@@ -15,10 +15,11 @@ Classifier: Programming Language :: Python :: Implementation :: PyPy
 Requires-Python: >=3.6.0
 Description-Content-Type: text/markdown
 License-File: LICENSE
-Requires-Dist: torch
-Requires-Dist: torch_scatter
-Requires-Dist: torch_sparse
-Requires-Dist: torch_geometric
+Requires-Dist: torch>=2.0.0
+Requires-Dist: pyg_lib
+Requires-Dist: torch_scatter>=2.1.0
+Requires-Dist: torch_sparse>=0.6.0
+Requires-Dist: torch_geometric>=2.3.2
 Requires-Dist: numpy
 Requires-Dist: scipy
 Requires-Dist: scikit-learn

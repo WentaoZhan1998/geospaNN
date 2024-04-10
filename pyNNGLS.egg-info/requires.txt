@@ -1,7 +1,8 @@
-torch
-torch_scatter
-torch_sparse
-torch_geometric
+torch>=2.0.0
+pyg_lib
+torch_scatter>=2.1.0
+torch_sparse>=0.6.0
+torch_geometric>=2.3.2
 numpy
 scipy
 scikit-learn

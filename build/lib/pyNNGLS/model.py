@@ -136,11 +136,16 @@ class nngls(torch.nn.Module):
         with torch.no_grad():
             return self.mlp(X).squeeze()
 
-    def predict(self, data_train, data_test, **kwargs):
+    def predict(self, data_train, data_test, CI = False, **kwargs):
         with torch.no_grad():
             w_train = data_train.y - self.estimate(data_train.x)
-            w_test, _, _ = krig_pred(w_train, data_train.pos, data_test.pos, self.theta, **kwargs)
-            estimation_test = self.estimate(data_test.x)
-            return estimation_test + w_test
+            if CI:
+                w_test, w_u, w_l = krig_pred(w_train, data_train.pos, data_test.pos, self.theta, **kwargs)
+                estimation_test = self.estimate(data_test.x)
+                return [estimation_test + w_test, estimation_test + w_u, estimation_test + w_l]
+            else:
+                w_test, _, _ = krig_pred(w_train, data_train.pos, data_test.pos, self.theta, **kwargs)
+                estimation_test = self.estimate(data_test.x)
+                return estimation_test + w_test
 
 __all__ = ['nngls']
