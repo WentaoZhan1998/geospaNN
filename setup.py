@@ -12,7 +12,7 @@ from shutil import rmtree
 from setuptools import find_packages, setup, Command
 
 # Package meta-data.
-NAME = 'geoNets'
+NAME = 'geospaNN'
 DESCRIPTION = 'A PyThon implementation of NNGLS'
 URL = 'https://github.com/me/myproject'
 EMAIL = 'wzhan3@jhu.edu'

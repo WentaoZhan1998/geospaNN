@@ -1,5 +1,5 @@
-# NN-GLS
-NNGLS package repository for the [NN-GLS paper](https://arxiv.org/pdf/2304.09157.pdf)
+# GeoNets
+GeoNets package repository for the [paper](https://arxiv.org/pdf/2304.09157.pdf) "neural networks for geospatial data".
 =======
 This is the package repository for the method proposed in the NN-GLS paper. To install (currently), use the following command:
 
@@ -12,7 +12,7 @@ pip install git+https://github.com/WentaoZhan1998/NN-GLS.git#egg=geoNets
 First import the modules and set up the parameters
 ```commandline\
 import torch
-import geoNets
+import geospaNN
 import numpy as np
 
 # This line defines the Friedman's function.
@@ -33,13 +33,13 @@ batch_size = 50
 Next, simulate and split the data.
 ```commandline\
 torch.manual_seed(2024)
-X, Y, coord, cov, corerr = geoNets.Simulation(n, p, nn, funXY, theta, range=[0, 10])
-data = geoNets.make_graph(X, Y, coord, nn)
-data_train, data_val, data_test = geoNets.split_data(X, Y, coord, neighbor_size=20,
+X, Y, coord, cov, corerr = geospaNN.Simulation(n, p, nn, funXY, theta, range=[0, 10])
+data = geospaNN.make_graph(X, Y, coord, nn)
+data_train, data_val, data_test = geospaNN.split_data(X, Y, coord, neighbor_size=20,
                                                    test_proportion=0.2)
 ```    
 
-Finally, compose the mlp structure and train easily.
+Compose the mlp structure and train easily.
 ```commandline\                                      
 mlp = torch.nn.Sequential(
     torch.nn.Linear(p, 50),
@@ -50,11 +50,22 @@ mlp = torch.nn.Sequential(
     torch.nn.ReLU(),
     torch.nn.Linear(10, 1),
 )
-model = geoNets.nngls(p=p, neighbor_size=nn, coord_dimensions=2, mlp=mlp, theta=torch.tensor([1.5, 5, 0.1]))
-nngls_model = geoNets.nngls_train(model, lr =  0.01, min_delta = 0.001)
+model = geospaNN.nngls(p=p, neighbor_size=nn, coord_dimensions=2, mlp=mlp, theta=torch.tensor([1.5, 5, 0.1]))
+nngls_model = geospaNN.nngls_train(model, lr =  0.01, min_delta = 0.001)
 training_log = nngls_model.train(data_train, data_val, data_test,
                                  Update_init = 10, Update_step = 10)
 ```
+
+Estimation from the model.
+```commandline\
+train_estimate = model.estimate(data_train.x)
+```
+
+Kriging prediction from the model.
+```commandline\
+test_predict = model.predict(data_train, data_test)
+```
+
 
 ## Running examples:
 * A simulation experiment with a common spatial setting is shown [here](https://github.com/WentaoZhan1998/NN-GLS/blob/main/Example_simulation.ipynb)
