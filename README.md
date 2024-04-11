@@ -1,10 +1,10 @@
-# GeoNets
-GeoNets package repository for the [paper](https://arxiv.org/pdf/2304.09157.pdf) "neural networks for geospatial data".
+# GeospaNN
+GeospaNN package repository for the [paper](https://arxiv.org/pdf/2304.09157.pdf) "neural networks for geospatial data".
 =======
 This is the package repository for the method proposed in the NN-GLS paper. To install (currently), use the following command:
 
 ```commandline\
-pip install git+https://github.com/WentaoZhan1998/NN-GLS.git#egg=geoNets
+pip install git+https://github.com/WentaoZhan1998/NN-GLS.git#egg=geospaNN
 ```
 
 ## An easy pipeline:
