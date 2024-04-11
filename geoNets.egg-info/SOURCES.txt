@@ -1,0 +1,12 @@
+LICENSE
+README.md
+setup.py
+geoNets/__init__.py
+geoNets/main.py
+geoNets/model.py
+geoNets/utils.py
+geoNets.egg-info/PKG-INFO
+geoNets.egg-info/SOURCES.txt
+geoNets.egg-info/dependency_links.txt
+geoNets.egg-info/requires.txt
+geoNets.egg-info/top_level.txt
