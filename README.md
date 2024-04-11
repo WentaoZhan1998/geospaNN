@@ -1,13 +1,13 @@
 # GeospaNN
-GeospaNN package repository for the [paper](https://arxiv.org/pdf/2304.09157.pdf) "neural networks for geospatial data".
-=======
-This is the package repository for the method proposed in the NN-GLS paper. To install (currently), use the following command:
+## Package based on the paper: [Neural networks for geospatial data](https://arxiv.org/pdf/2304.09157.pdf)
+
+This is the package repository for the method proposed in the paper. To install locally, use the following command:
 
 ```commandline\
 pip install git+https://github.com/WentaoZhan1998/NN-GLS.git#egg=geospaNN
 ```
 
-## An easy pipeline:
+## An easy pipeline for a simulation experiment:
 
 First import the modules and set up the parameters
 ```commandline\
@@ -15,32 +15,38 @@ import torch
 import geospaNN
 import numpy as np
 
-# This line defines the Friedman's function.
+# Define the Friedman's function, and specify the dimension of input covariates.
 def f5(X): return (10*np.sin(np.pi*X[:,0]*X[:,1]) + 20*(X[:,2]-0.5)**2 + 10*X[:,3] +5*X[:,4])/6
-
-sigma = 1
-phi = 3
-tau = 0.01
-theta = torch.tensor([sigma, phi / np.sqrt(2), tau])
-
 p = 5; funXY = f5
 
-n = 1000
-nn = 20
-batch_size = 50
+# Set the parameters for the spatial process.
+sigma = 1
+phi = 3/np.sqrt(2)
+tau = 0.01
+theta = torch.tensor([sigma, phi, tau])
+
+n = 1000 # Size of the simulated sample.
+nn = 20 # Neighbor size used for NNGP.
+batch_size = 50 # Batch size for training the neural networks.
 ```
 
 Next, simulate and split the data.
 ```commandline\
 torch.manual_seed(2024)
+# Simulate the spatially correlated data with spatial coordinates randomly sampled on a [0, 10]^2 squared domain.
 X, Y, coord, cov, corerr = geospaNN.Simulation(n, p, nn, funXY, theta, range=[0, 10])
+
+# Build the nearest neighbor graph, 'data' is in the torch_geometric.data.Data class.
 data = geospaNN.make_graph(X, Y, coord, nn)
+
+# Split data into training, validation, testing sets.
 data_train, data_val, data_test = geospaNN.split_data(X, Y, coord, neighbor_size=20,
                                                    test_proportion=0.2)
 ```    
 
 Compose the mlp structure and train easily.
-```commandline\                                      
+```commandline\
+# Define the mlp structure (torch.nn) to use.                         
 mlp = torch.nn.Sequential(
     torch.nn.Linear(p, 50),
     torch.nn.ReLU(),
@@ -50,8 +56,14 @@ mlp = torch.nn.Sequential(
     torch.nn.ReLU(),
     torch.nn.Linear(10, 1),
 )
+
+# Define the NN-GLS corresponding model. 
 model = geospaNN.nngls(p=p, neighbor_size=nn, coord_dimensions=2, mlp=mlp, theta=torch.tensor([1.5, 5, 0.1]))
+
+# Define the NN-GLS training class with learning rate and tolerance.
 nngls_model = geospaNN.nngls_train(model, lr =  0.01, min_delta = 0.001)
+
+# Train the model.
 training_log = nngls_model.train(data_train, data_val, data_test,
                                  Update_init = 10, Update_step = 10)
 ```
