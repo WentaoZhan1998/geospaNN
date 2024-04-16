@@ -1,0 +1,40 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "geospaNN"
+version = "0.1.0"
+authors = [
+  { name="Wentao Zhan", email="wzhan3@jhu.edu" },
+]
+maintainers = [
+    { name="Wentao Zhan", email="wzhan3@jhu.edu" },
+]
+description = "A PyThon implementation of NNGLS"
+readme = "README.md"
+requires-python = ">=3.9"
+classifiers = [
+    "Natural Language :: English",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Scientific/Engineering :: Mathematics",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+
+dependencies = [
+    'torch==2.0.0',
+    'torch_scatter>=2.1.0',
+    'torch_sparse>=0.6.0',
+    'torch_geometric==2.3.0',
+    'numpy', 'scipy', 'scikit-learn',
+]
+
+[project.urls]
+Homepage = "https://github.com/WentaoZhan1998/NN-GLS"
+Repository = "https://github.com/WentaoZhan1998/NN-GLS.git"
+Issues = "https://github.com/WentaoZhan1998/NN-GLS/issues"
