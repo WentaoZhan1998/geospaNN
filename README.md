@@ -44,51 +44,54 @@ pip install geospaNN
 ## An easy running sample:
 
 First import the modules and set up the parameters
+1. Define the Friedman's function, and specify the dimension of input covariates.
+2. Set the parameters for the spatial process.
+3. Set the hyperparameters of the data.
 ```commandline\
 import torch
 import geospaNN
 import numpy as np
 
-# Define the Friedman's function, and specify the dimension of input covariates.
-
+# 1.
 def f5(X): return (10*np.sin(np.pi*X[:,0]*X[:,1]) + 20*(X[:,2]-0.5)**2 + 10*X[:,3] +5*X[:,4])/6;
-
 p = 5; funXY = f5
 
-# Set the parameters for the spatial process.
-
+# 2.
 sigma = 1
 phi = 3/np.sqrt(2)
 tau = 0.01
 theta = torch.tensor([sigma, phi, tau])
 
+# 3.
 n = 1000            # Size of the simulated sample.
 nn = 20             # Neighbor size used for NNGP.
 batch_size = 50     # Batch size for training the neural networks.
 ```
 
 Next, simulate and split the data.
+1. Simulate the spatially correlated data with spatial coordinates randomly sampled on a [0, 10]^2 squared domain.
+2. Build the nearest neighbor graph, as a torch_geometric.data.Data object.
+3. Split data into training, validation, testing sets.
 ```commandline\
+# 1.
 torch.manual_seed(2024)
-
-# Simulate the spatially correlated data with spatial coordinates randomly sampled on a [0, 10]^2 squared domain.
-
 X, Y, coord, cov, corerr = geospaNN.Simulation(n, p, nn, funXY, theta, range=[0, 10])
 
-# Build the nearest neighbor graph, as a torch_geometric.data.Data object.
-
+# 2.
 data = geospaNN.make_graph(X, Y, coord, nn)
 
-# Split data into training, validation, testing sets.
-
+# 3.
 data_train, data_val, data_test = geospaNN.split_data(X, Y, coord, neighbor_size=20,
                                                    test_proportion=0.2)
 ```    
 
 Compose the mlp structure and train easily.
+1. Define the mlp structure (torch.nn) to use.
+2. Define the NN-GLS corresponding model.
+3. Define the NN-GLS training class with learning rate and tolerance.
+4. Train the model.
 ```commandline\
-# Define the mlp structure (torch.nn) to use.   
-                      
+# 1.             
 mlp = torch.nn.Sequential(
     torch.nn.Linear(p, 50),
     torch.nn.ReLU(),
@@ -99,16 +102,13 @@ mlp = torch.nn.Sequential(
     torch.nn.Linear(10, 1),
 )
 
-# Define the NN-GLS corresponding model. 
-
+# 2.
 model = geospaNN.nngls(p=p, neighbor_size=nn, coord_dimensions=2, mlp=mlp, theta=torch.tensor([1.5, 5, 0.1]))
 
-# Define the NN-GLS training class with learning rate and tolerance.
-
+# 3.
 nngls_model = geospaNN.nngls_train(model, lr =  0.01, min_delta = 0.001)
 
-# Train the model.
-
+# 4.
 training_log = nngls_model.train(data_train, data_val, data_test,
                                  Update_init = 10, Update_step = 10)
 ```
@@ -125,7 +125,7 @@ test_predict = model.predict(data_train, data_test)
 ```
 
 ## Running examples:
-* A simulation experiment with a common spatial setting is shown [here](https://github.com/WentaoZhan1998/geospaNN/blob/main/Example_simulation.ipynb)
+* A simulation experiment with a common spatial setting is shown [here](https://github.com/WentaoZhan1998/geospaNN/blob/main/Example_simulation.ipynb).
 
 * A real data experiment is shown [here](https://github.com/WentaoZhan1998/geospaNN/blob/main/Example_realdata.ipynb). 
 * The PM2.5 data is collected from the [U.S. Environmental Protection Agency](https://www.epa.gov/outdoor-air-quality-data/download-daily-data) datasets for each state are collected and bound together to obtain 'pm25_2022.csv'. daily PM2.5 files are subsets of 'pm25_2022.csv' produced by 'realdata_preprocess.py'. One can skip the preprocessing and use the daily files directory. 
