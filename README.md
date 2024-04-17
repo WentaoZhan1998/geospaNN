@@ -1,10 +1,14 @@
 # GeospaNN
 ## Package based on the paper: [Neural networks for geospatial data](https://arxiv.org/pdf/2304.09157.pdf)
 
-This is the package repository for the method proposed in the paper. To install locally, use the following command:
-
+This is the package repository for the method proposed in the paper. To install the github version, use the following command:
 ```commandline\
-pip install git+https://github.com/WentaoZhan1998/NN-GLS.git#egg=geospaNN
+pip install git+https://github.com/WentaoZhan1998/geospaNN.git#egg=geospaNN
+```
+
+To install the pip version, use the following command:
+```commandline\
+pip install geospaNN
 ```
 
 ## An easy pipeline for a simulation experiment:
@@ -36,7 +40,7 @@ torch.manual_seed(2024)
 # Simulate the spatially correlated data with spatial coordinates randomly sampled on a [0, 10]^2 squared domain.
 X, Y, coord, cov, corerr = geospaNN.Simulation(n, p, nn, funXY, theta, range=[0, 10])
 
-# Build the nearest neighbor graph, 'data' is in the torch_geometric.data.Data class.
+# Build the nearest neighbor graph, as a torch_geometric.data.Data object.
 data = geospaNN.make_graph(X, Y, coord, nn)
 
 # Split data into training, validation, testing sets.
@@ -68,22 +72,20 @@ training_log = nngls_model.train(data_train, data_val, data_test,
                                  Update_init = 10, Update_step = 10)
 ```
 
-Estimation from the model.
+Estimation from the model. The variable is a torch.Tensor object of the same dimension
 ```commandline\
 train_estimate = model.estimate(data_train.x)
 ```
 
-Kriging prediction from the model.
+Kriging prediction from the model. The first variable is supposed to be the data used for training, and the second 
+variable a torch_geometric.data.Data object which can be composed by 'geospaNN.make_graph()'.
 ```commandline\
 test_predict = model.predict(data_train, data_test)
 ```
-
 
 ## Running examples:
 * A simulation experiment with a common spatial setting is shown [here](https://github.com/WentaoZhan1998/NN-GLS/blob/main/Example_simulation.ipynb)
 
 * A real data experiment is shown [here](https://github.com/WentaoZhan1998/NN-GLS/blob/main/Example_realdata.ipynb). 
-    * The PM2.5 data is collected from the [U.S. Environmental Protection Agency](https://www.epa.gov/outdoor-air-quality-data/download-daily-data) datasets for each state are collected and bound together to obtain 'pm25_2022.csv'. daily PM2.5 files are subsets of 'pm25_2022.csv' produced by 'realdata_preprocess.py'. One can skip the preprocessing and use the daily files directory. 
-    * The meteorological data is collected from the [National Centers for Environmental Prediction’s (NCEP) North American Regional Reanalysis (NARR) product](https://psl.noaa.gov/data/gridded/data.narr.html). The '.nc' (netCDF) files should be downloaded from the website and saved in the root directory to run 'realdata_preprocess.py'. Otherwise, one may skip the preprocessing and use covariate files directly. 
-
-
+* The PM2.5 data is collected from the [U.S. Environmental Protection Agency](https://www.epa.gov/outdoor-air-quality-data/download-daily-data) datasets for each state are collected and bound together to obtain 'pm25_2022.csv'. daily PM2.5 files are subsets of 'pm25_2022.csv' produced by 'realdata_preprocess.py'. One can skip the preprocessing and use the daily files directory. 
+* The meteorological data is collected from the [National Centers for Environmental Prediction’s (NCEP) North American Regional Reanalysis (NARR) product](https://psl.noaa.gov/data/gridded/data.narr.html). The '.nc' (netCDF) files should be downloaded from the website and saved in the root directory to run 'realdata_preprocess.py'. Otherwise, one may skip the preprocessing and use covariate files directly. 
