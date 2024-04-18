@@ -43,7 +43,16 @@ class LRScheduler():
         self.lr_scheduler.step(val_loss)
 
 class DropoutLayer(torch.nn.Module):
+    """
+    Customized dropout layer where the nodes values are dropped with probability p.
+    """
     def __init__(self, p):
+        """
+        Parameters
+        ----------
+        p : float
+            The drop probability
+        """
         super().__init__()
         self.p = p
 
@@ -62,10 +71,12 @@ class EarlyStopping():
     """
     def __init__(self, patience=5, min_delta=0):
         """
-        :param patience: how many epochs to wait before stopping when loss is
-               not improving
-        :param min_delta: minimum difference between new loss and old loss for
-               new loss to be considered as an improvement
+        Parameters
+        ----------
+        patience: int
+            How many epochs to wait before stopping when loss is not improving
+        min_delta: float
+            Minimum difference between new loss and old loss for new loss to be considered as an improvement
         """
         self.patience = patience
         self.min_delta = min_delta
@@ -87,6 +98,44 @@ class EarlyStopping():
                 self.early_stop = True
 
 class Sparse_B():
+    """
+    A sparse representation of the lower-triangular neighboring nxn matrix B_dense,
+    where each row contains at most p non-zero values.
+    ...
+
+    Attributes
+    ----------
+    B : torch.Tensor | numpy.array
+        nxp array contains all non-zero values in B_dense.
+    n : int
+        The number of samples.
+    neighbor_size : int
+        i.e. p in the documentation, the largest number of non-zero values in each row of B_dense.
+    Ind_list : numpy.array
+        The nxp index array indicating the location where values in B was in B_dense. For example, the [i,j]'s index is k
+        means that B_dense[i,k] = B[i,j].
+
+    Methods
+    -------
+    to_numpy()
+        Transform B to numpy.array
+
+    to_tensor()
+        Transform B to torch.Tensor
+
+    matmul(X, idx = None)
+        Calculate the matrix product of B_dense[idx,:] and X
+
+    invmul(y)
+        Calculate the matrix-vector product of B_dense^{-1} and y. Only used when the diagonal of B_dense is constantly 1.
+
+    Fmul(F_diag)
+        Return a new Sparse_B object where B_dense is replaced by the matrix product of F * B_dense.
+        F_diag is the vector representation of the nxn diagonal matrix F.
+
+    to_dense()
+        Return the dense form of B_dense as an numpy.array object.
+    """
     def __init__(self, B, Ind_list):
         self.B = B
         self.n = B.shape[0]
@@ -147,11 +196,11 @@ class Sparse_B():
                 x = torch.cat((x, (y[i] + torch.dot(x[ind[id]], B[i, :][id])).unsqueeze(0)), dim = -1)
         return x
 
-    def Fmul(self, F):
-        temp = Sparse_B(self.B.copy(), self.Ind_list.copy())
+    def Fmul(self, F_diag):
+        res = Sparse_B(self.B.copy(), self.Ind_list.copy())
         for i in range(self.n):
-            temp.B[i,:] = F[i]*self.B[i,:]
-        return temp
+            res.B[i,:] = F_diag[i]*self.B[i,:]
+        return res
 
     def to_dense(self):
         B = np.zeros((self.n, self.n))
@@ -163,19 +212,60 @@ class Sparse_B():
         return B
 
 class NNGP_cov(Sparse_B):
+    """
+    A subclass of Sparse_B designed for the decorrelation using NNGP. The whole object is an NNGP approximation of the
+    inverse square-root of a covariance matrix \Sigma. i.d. F^{-1/2}(I-B) ~ \Sigma^{-1/2}
+    ...
+
+    Attributes
+    ----------
+    F_diag : torch.Tensor
+        A vector of length n representing the diagonal matrix F.
+
+    Methods
+    -------
+    correlate(x)
+        Approximately correlate the matrix X to \Sigma^{1/2}X.
+
+    decorrelate(x)
+        Approximately decorrelate the matrix X to \Sigma^{-1/2}X.
+    """
     def __init__(self, B, F_diag, Ind_list):
         super().__init__(B = B, Ind_list = Ind_list)
         assert len(F_diag) == B.shape[0]
         self.F_diag = F_diag
 
     def correlate(self, x):
+        """
+        Approximately correlate the matrix X to \Sigma^{1/2}X by calculating (I_B)^{-1}F^{1/2}X.
+
+        Parameters
+        ----------
+        x : torch.Tensor
+
+        Returns
+        -------
+        torch.Tensor
+        """
         assert x.shape[0] == self.n
         return self.invmul(torch.sqrt(self.F_diag) * x)
 
     def decorrelate(self, x):
+        """
+        Approximately decorrelate the matrix X to \Sigma^{-1/2}X by calculating F^{-1/2}(I_B)X.
+
+        Parameters
+        ----------
+        x : torch.Tensor
+
+        Returns
+        -------
+        torch.Tensor
+        """
         assert x.shape[0] == self.n
         return torch.sqrt(torch.reciprocal(self.F_diag))*self.matmul(x)
 
+"""
 class NNGP_cov_np(Sparse_B):
     def __init__(self, B, F_diag, Ind_list):
         super().__init__(B = B, Ind_list = Ind_list)
@@ -185,41 +275,98 @@ class NNGP_cov_np(Sparse_B):
     def decorrelate(self, x):
         assert x.shape[0] == self.n
         return np.sqrt(np.reciprocal(self.F_diag))*self.matmul(x)
+"""
 
-def rmvn(m: int,
-         mu: torch.Tensor,
+def rmvn(mu: torch.Tensor,
          cov: torch.Tensor | NNGP_cov,
-         sparse: Optional[bool] = True):
-    n = len(mu)
+         sparse: Optional[bool] = True) \
+        -> torch.Tensor:
+    """Randomly generate sample from multivariate normal distribution
+
+    Generate random sample from a multivariate normal distribution with specified mean and covariance.
+
+    Parameters
+    ----------
+    mu
+        The additional mean of multivariate normal of length n.
+    cov
+    `   The nxn covariance matrix. When use torch.Tensor for the dense representation, Cholesky's decomposition is used
+        for correlating the i.i.d normal sample. When use NNGP_cov object for sparse representation, use NNGP to approximate
+        the correlating process. Dense representation is not recommended for large sample size.
+    sparse
+        Designed for sparse representation, not implemented yet.
+
+    Returns
+    -------
+    torch.Tensor
+        A random sample from the multivariate normal distribution.
+    """
+    n = len(mu) #### Check dimensionality
     if isinstance(cov, torch.Tensor):
         if n >= 2000: warnings.warn("Too large for cholesky decomposition, please try to use NNGP")
         D = torch.linalg.cholesky(cov)
-        res = torch.matmul(torch.randn(m, n), D.t()) + mu
+        res = torch.matmul(torch.randn(1, n), D.t()) + mu
     elif isinstance(cov, NNGP_cov):
         if sparse:
-            res = cov.correlate(torch.randn(m, n).reshape(-1))
+            res = cov.correlate(torch.randn(1, n).reshape(-1)) + mu
         else:
             warnings.warn("To be implemented.")
     return  res.reshape(-1)
 
 def make_rank(coord: torch.Tensor,
               neighbor_size: int,
-              coord_test: Optional = None
+              coord_ref: Optional = None
               ) -> np.ndarray:
-    if coord_test is None: neighbor_size += 1
+    """Compose the nearest neighbor index list based on the coordinates.
+
+    Find the indexes of nearest neighbors in reference set for each location i in the main set.
+    The index is based on the increasing order of the distances between ith location and the locations in the reference set.
+
+    Parameters
+    ----------
+    coord
+        The nxd coordinates array of target locations.
+    neighbor_size
+    `   Suppose neighbor_size = p, only the top p nearest indexes will be returned.
+    coord_ref
+        The n_refxd coordinates array of reference locations. If None, use the target set itself as the reference.
+        (Any location's neighbor does not includes itself.)
+
+    Returns
+    -------
+    np.array
+        A nxp array. The ith row is the indexes of the nearest neighbors for the ith location, ordered by the distance.
+    """
+    if coord_ref is None: neighbor_size += 1
     knn = NearestNeighbors(n_neighbors=neighbor_size)
     knn.fit(coord)
-    if coord_test is None:
-        coord_test = coord
-        rank = knn.kneighbors(coord_test)[1]
+    if coord_ref is None:
+        coord_ref = coord
+        rank = knn.kneighbors(coord_ref)[1]
         return rank[:, 1:]
     else:
-        rank = knn.kneighbors(coord_test)[1]
+        rank = knn.kneighbors(coord_ref)[1]
         return rank[:, 0:]
 
 def distance(coord1: torch.Tensor,
              coord2: torch.Tensor
              ) -> torch.Tensor:
+    """Distance matrix between two sets of points
+
+    Calculate the pairwise distance between two sets of locations.
+
+    Parameters
+    ----------
+    coord1
+        The nxd coordinates array for the first set.
+    coord12
+        The nxd coordinates array for the second set.
+
+    Returns
+    -------
+    torch.Tensor
+        The distance matrix.
+    """
     if coord1.ndim == 1:
         m = 1
         coord1 = coord1.unsqueeze(0)
@@ -238,9 +385,28 @@ def distance(coord1: torch.Tensor,
     return dists
 
 def distance_np(coord1, coord2):
+    """The numpy version of distance()
+
+    Calculate the pairwise distance between two sets of locations.
+
+    Parameters
+    ----------
+    coord1
+        The nxd coordinates array for the first set.
+    coord2
+        The nxd coordinates array for the second set.
+
+    Returns
+    -------
+    torch.Tensor
+        The distance matrix.
+
+    See Also
+    --------
+    distance : Distance matrix between two sets of points
+    """
     m = coord1.shape[0]
     n = coord2.shape[0]
-
     #### Can improve (resolved)
     coord1 = coord1
     coord2 = coord2
@@ -252,11 +418,35 @@ def distance_np(coord1, coord2):
 def make_bf_from_cov(cov: torch.Tensor,
                      neighbor_size: int,
                      ) -> Sparse_B:
+    """Obtain NNGP approximation of a covariance matrix
+
+    Find the upper triangular matrix B and diagonal matrix F such that (I-B)'F^{-1}(I-B) appriximate the precision matrix
+    (inverse of the covariance matrix). The level of approximation increase with the neighbor size. When using the full neighbor,
+    the NNGP appriximation degrade to the Cholesky decomposition. (see https://arxiv.org/abs/2102.13299 for more details.)
+
+    Parameters
+    ----------
+    cov
+        The nxn covariance matrix.
+    neighbor_size
+        The number of nearest neighbors used.
+
+    Returns
+    -------
+    I_B: Sparse_B
+        The sparse representation of I-B.
+    F: torch.Tensor
+        The vector representation of the diagonal matrix.
+
+    See Also
+    --------
+    make_bf : Obtain NNGP approximation with implicit covariance matrix
+    """
     n = cov.shape[0]
     B = torch.zeros((n, neighbor_size))
     ind_list = np.zeros((n, neighbor_size)).astype(int) - 1
     F = torch.zeros(n)
-    rank = np.argsort(-cov, axis=-1)
+    rank = np.argsort(-cov, axis=-1) #### consider replace using make_rank?
     rank = rank[:, 1:(neighbor_size + 1)]
     for i in range(n):
         F[i] = cov.diag()[i]
@@ -274,15 +464,42 @@ def make_bf_from_cov(cov: torch.Tensor,
     I_B = Sparse_B(torch.concatenate([torch.ones((n, 1)), -B], axis=1),
                    np.concatenate([np.arange(0, n).reshape(n, 1), ind_list], axis=1))
 
-    return I_B, F
+    return I_B, F #### Shall we return NNGP_cov instead?
 
 
 def make_bf(coord: torch.Tensor,  #### could add a make_bf from cov (resolved)
-            rank: np.ndarray,
+            neighbor_size: int,
             theta: tuple[float, float, float]
             ) -> Sparse_B:
+    """Obtain NNGP approximation with implicit covariance matrix
+
+    Find the upper triangular matrix B and diagonal matrix F such that (I-B)'F^{-1}(I-B) appriximate the precision matrix
+    (inverse of the covariance matrix). (see https://arxiv.org/abs/2102.13299 for more details.) Here only coordinates and
+    spatial parameters are needed to represent the exponential covariance implicitly,
+    thus being more memory-efficient than make_bf_from_cov.
+
+    Parameters
+    ----------
+    coord
+        The nxd covariate array.
+    neighbor_size
+        The number of nearest neighbors used.
+    theta
+        theta[0], theta[1], theta[2] represent \sigma^2, \phi, \tau in the exponential covariance family.
+
+    Returns
+    -------
+    I_B: Sparse_B
+        The sparse representation of I-B.
+    F: torch.Tensor
+        The vector representation of the diagonal matrix.
+
+    See Also
+    --------
+    make_bf_from_cov : Obtain NNGP approximation of a covariance matrix
+    """
     n = coord.shape[0]
-    neighbor_size = rank.shape[1]
+    rank = make_rank(coord, neighbor_size)
     B = torch.zeros((n, neighbor_size))
     ind_list = np.zeros((n, neighbor_size)).astype(int) - 1
     F = torch.zeros(n)
@@ -305,12 +522,41 @@ def make_bf(coord: torch.Tensor,  #### could add a make_bf from cov (resolved)
 
     return I_B, F
 
+'''
 def make_bf_np(coord: np.ndarray,  #### could add a make_bf from cov (resolved)
-                rank: np.ndarray,
+                neighbor_size: int,
                 theta: tuple[float, float, float]
                 ) -> Sparse_B:
+    """The numpy version of make_bf
+
+    Find the upper triangular matrix B and diagonal matrix F such that (I-B)'F^{-1}(I-B) appriximate the precision matrix
+    (inverse of the covariance matrix). (see https://arxiv.org/abs/2102.13299 for more details.) Here only coordinates and
+    spatial parameters are needed to represent the exponential covariance implicitly, 
+    thus being more memory-efficient than make_bf_from_cov.
+
+    Parameters
+    ----------
+    coord
+        The nxd coordinate array.
+    neighbor_size
+        The number of nearest neighbors used.
+    theta
+        theta[0], theta[1], theta[2] represent \sigma^2, \phi, \tau in the exponential covariance family.
+
+    Returns
+    -------
+    I_B: Sparse_B
+        The sparse representation of I-B.
+    F: torch.Tensor
+        The vector representation of the diagonal matrix.
+
+    See Also
+    --------
+    make_bf_from_cov : Obtain NNGP approximation of a covariance matrix
+    make_bf : Obtain NNGP approximation with implicit covariance matrix
+    """
     n = coord.shape[0]
-    neighbor_size = rank.shape[1]
+    rank = make_rank(coord, neighbor_size)
     B = np.zeros((n, neighbor_size))
     ind_list = np.zeros((n, neighbor_size)).astype(int) - 1
     F = np.zeros(n)
@@ -331,11 +577,32 @@ def make_bf_np(coord: np.ndarray,  #### could add a make_bf from cov (resolved)
                    np.concatenate([np.arange(0, n).reshape(n, 1), ind_list], axis = 1))
 
     return I_B, F
+'''
 
-def make_cov_full(theta: tuple[float, float, float],
-                  dist: torch.Tensor | np.ndarray,
+
+def make_cov_full(dist: torch.Tensor | np.ndarray,
+                  theta: tuple[float, float, float],
                   nuggets: Optional[bool] = False,
                   ) -> torch.Tensor | np.ndarray:
+    """Compose covariance matrix from the distance matrix with dense representation.
+
+    Compose a covariance matrix in the exponential covariance family (other options to be implemented) from the distance
+    matrix. The returned object class depends on the input distance matrix.
+
+    Parameters
+    ----------
+    dist
+        The nxn distance matrix
+    theta
+        theta[0], theta[1], theta[2] represent \sigma^2, \phi, \tau in the exponential covariance family.
+    nuggets
+        Whether to include nuggets term in the covariance matrix (added to the diagonal).
+
+    Returns
+    -------
+    cov
+        A covariance matrix.
+    """
     sigma_sq, phi, tau = theta
     tau_sq = tau * sigma_sq
     if isinstance(dist, float) or isinstance(dist, int):
@@ -355,19 +622,38 @@ def make_cov_full(theta: tuple[float, float, float],
             cov += tau_sq * np.eye(n).squeeze() #### need improvement
     return cov
 
-def make_cov(theta: tuple[float, float, float],
-             coord: torch.Tensor,
+def make_cov(coord: torch.Tensor,
+             theta: tuple[float, float, float],
              NNGP: Optional[bool] = True,
              neighbor_size: int = 20
              ) -> torch.Tensor:
-    dist = distance(coord, coord)
+    """Compose covariance matrix.
 
+    Compose a covariance matrix in the exponential covariance family using the coordinates and spatial parameters.
+    NNGP approximation is introduced for efficient representation. (see https://arxiv.org/abs/2102.13299 for more details.)
+
+    Parameters
+    ----------
+    coord
+        The nxd covariate array.
+    theta
+        theta[0], theta[1], theta[2] represent \sigma^2, \phi, \tau in the exponential covariance family.
+    NNGP
+        Whether use NNGP approximation (recommended and used by default).
+    neighbor_size
+        Number of nearest neighbors used for NNGP approximation, default value is 20.
+
+    Returns
+    -------
+    cov
+        A covariance matrix as torch.Tensor (dense representation) or NNGP_cov (sparse representation).
+    """
     if not NNGP:
+        dist = distance(coord, coord)
         cov = make_cov_full(theta, dist, nuggets = True) #### could add a make_bf from cov (resolved)
         return cov
     else:
-        rank = make_rank(coord, neighbor_size)
-        I_B, F_diag = make_bf(coord, rank, theta) #### could merge into one step
+        I_B, F_diag = make_bf(coord, neighbor_size, theta) #### could merge into one step
         cov = NNGP_cov(I_B.B, F_diag, I_B.Ind_list)
         return cov
 
@@ -378,13 +664,48 @@ def Simulation(n: int, p:int,
                range: tuple[float, float] = [0,1],
                sparse: Optional[bool] = True
                ):
+    """Simulate spatial data
+
+    Simulate the spatial data based on the following model: Y(s) = f(X(s)) + w(s) + delta(s),
+    where s are the spatial locations, X(s) is the spatial covariates, w(s) is the spatial effect (correlated noise),
+    and delta(s) is the i.i.d random noise (nuggets).
+
+    Parameters
+    ----------
+    n
+        Sample size.
+    p
+        Dimension of covariates.
+    fx
+        Function for the covariates' effect.
+    theta
+        theta[0], theta[1], theta[2] represent \sigma^2, \phi, \tau in the exponential covariance family,
+        used for generating spatial random effect.
+    range
+        A tuple [a, b] as the range of spatial locations. The spatial coordinates are sampled uniformly from [a, b]^2.
+    sparse
+        To be implemented. Mainly interact with the rmvn() function.
+
+    Returns
+    -------
+    X: torch.Tensor
+        nxp array sampled uniformly from [0,1] as the covariates.
+    Y: torch.Tensor
+        Length n vector as the observations consists of fixed covariate effect, spatial random effect, and random noise.
+    coord: torch.Tensor
+        Simulated spatial locations.
+    cov: torch.Tensor | NNGP_cov
+        Covariance matrix based on the simulated coordinates.
+    corerr
+        Simulated spatial random effect.
+    """
     coord = (range[1] - range[0]) * torch.rand(n, 2) + range[0]
     sigma_sq, phi, tau = theta
     tau_sq = tau * sigma_sq
 
     cov = make_cov(theta, coord, neighbor_size)
     X = torch.rand(n, p)
-    corerr = rmvn(1, torch.zeros(n), cov, sparse)
+    corerr = rmvn(torch.zeros(n), cov, sparse)
     Y = fx(X).reshape(-1) + corerr + torch.sqrt(tau_sq) * torch.randn(n)
 
     return X, Y, coord, cov, corerr
@@ -395,6 +716,41 @@ def make_graph(X: torch.Tensor,
                neighbor_size: int,
                Ind_list: Optional = None
                ) -> torch_geometric.data.Data:
+    """Compose the data with graph information to work on.
+
+    This function connects each node to its nearest neighbors and records the edge indexes in two forms for the downstream
+    graph operations.
+
+    Parameters
+    ----------
+    X
+        nxp array of the covariates.
+    Y
+        Length n vector as the response.
+    coord
+        nxd array of the coordinates
+    neighbor_size
+        The number of nearest neighbors used.
+    Ind_list
+        An optional index list. If provided, ommit the make_rank() step in the function.
+
+    Returns
+    -------
+    data: torch_geometric.data.Data
+        Data that can be processed by the torch_geometric framework.
+        data.x contains the covariates array,
+        data.y contains the response vector,
+        data.pos contains the spatial coordinates,
+        data.edge_index contains the indexes of form [i,j] where location j is in the nearest neighbor of location i.
+        data.edge_attr contains the concatenated numbering of the neighbors.
+        For each location, the numbering is of the form [0, 1, ... , k] where k is the number of the nearest neighbors.
+        This attribute is mainly used in messaging passing.
+
+    See Also
+    --------
+    make_rank : Compose the nearest neighbor index list based on the coordinates.
+    torch_geometric.data.Data : A data object describing a homogeneous graph.
+    """
     n = X.shape[0]
     # Compute the edges of the graph
     edges = []
@@ -423,7 +779,36 @@ def split_data(X: torch.Tensor,
                neighbor_size: Optional[int] = 20,
                val_proportion: float = 0.2,
                test_proportion: float = 0.2
-               ) -> tuple[torch_geometric.data.Data, torch_geometric.data.Data]:
+               ) -> tuple[torch_geometric.data.Data, torch_geometric.data.Data, torch_geometric.data.Data]:
+    """Split the data into training, validation, and testing parts and add the graph information respectively.
+
+    This function split the data with a user specified proportions and build the graph information. The output are the
+    data sets that can be directly processed within the torch_geomtric framework.
+
+    Parameters
+    ----------
+    X
+        nxp array of the covariates.
+    Y
+        Length n vector as the response.
+    coord
+        nxd array of the coordinates
+    neighbor_size
+        The number of nearest neighbors used.
+    val_proportion
+        The proportion of training set splitted as validation set.
+    test_proportion
+        The proportion of whole data splitted as testing set.
+
+    Returns
+    -------
+    data_train, data_val, data_test
+
+    See Also
+    --------
+    make_graph : Compose the data with graph information to work on.
+    torch_geometric.data.Data : A data object describing a homogeneous graph.
+    """
     X_train_val, X_test, Y_train_val, Y_test, coord_train_val, coord_test = train_test_split(
         X, Y, coord, test_size = test_proportion
     )
@@ -440,6 +825,33 @@ def split_data(X: torch.Tensor,
 
 def split_loader(data: torch_geometric.data.Data,
                  batch_size: Optional[int] = None):
+    """Create mini-batches for GNN training
+
+    This functions further split a data for mini-batch training of GNNs on large-scale graphs
+    where full-batch training is not feasible. Note that only source nodes are splited into batches,
+    each batch will contain edges originate from those source nodes.
+    There might be interactions among the target nodes across batches.
+
+    Parameters
+    ----------
+    data
+        Data with graph information (output of split_data() or make_graph()).
+    batch_size
+        Size of mini-batches, default value being n/20.
+
+    Returns
+    -------
+    loader
+        A dataloader that can be enumerated for mini-batch training.
+
+    See Also
+    --------
+    make_graph : Compose the data with graph information to work on.
+    split_data : Split the data into training, validation, and testing parts and add the graph information respectively.
+    torch_geometric.loader : A data loader that performs neighbor sampling as introduced in the
+    `"Inductive Representation Learning on Large Graphs"
+    <https://arxiv.org/abs/1706.02216>`_ paper.
+    """
     if batch_size is None:
         batch_size  = int(data.x.shape[0]/20)
     loader = NeighborLoader(data,
