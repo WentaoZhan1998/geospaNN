@@ -525,9 +525,9 @@ def make_bf(coord: torch.Tensor,  #### could add a make_bf from cov (resolved)
         ind = rank[i, :][rank[i, :] <= i]
         if len(ind) == 0:
             continue
-        cov_sub = make_cov_full(distance(coord[ind, :], theta, coord[ind, :]), nuggets = True)
+        cov_sub = make_cov_full(distance(coord[ind, :], coord[ind, :]), theta, nuggets = True)
         if torch.linalg.matrix_rank(cov_sub) == cov_sub.shape[0]:
-            cov_vec = make_cov_full(distance(coord[ind, :], theta, coord[i, :])).reshape(-1)
+            cov_vec = make_cov_full(distance(coord[ind, :], coord[i, :]), theta).reshape(-1)
             #### nuggets is not specified since its off-diagonal
             bi = torch.linalg.solve(cov_sub, cov_vec)
             B[i, range(len(ind))] = bi
