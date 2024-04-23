@@ -5,6 +5,9 @@ from torch_geometric.nn import MessagePassing
 
 
 class CovarianceVectorConv(MessagePassing):
+    """
+    A message passing layer
+    """
     def __init__(self, neighbor_size, theta):
         super().__init__(aggr="sum")
         self.neighbor_size = neighbor_size

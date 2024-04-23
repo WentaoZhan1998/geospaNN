@@ -7,6 +7,7 @@ name = "geospaNN"
 version = "0.1.1"
 authors = [
   { name="Wentao Zhan", email="wzhan3@jhu.edu" },
+    { name="Abhirup Datta", email="abhidatta@jhu.edu" }
 ]
 maintainers = [
     { name="Wentao Zhan", email="wzhan3@jhu.edu" },
@@ -28,8 +29,8 @@ classifiers = [
 
 dependencies = [
     'torch==2.0.0',
-    'torch_scatter>=2.1.0',
-    'torch_sparse>=0.6.0',
+    'torch_scatter==2.1.0',
+    'torch_sparse==0.6.0',
     'torch_geometric==2.3.0',
     'numpy', 'scipy', 'scikit-learn',
 ]

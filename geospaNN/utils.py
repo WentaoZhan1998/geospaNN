@@ -18,14 +18,23 @@ class LRScheduler():
     by given `factor`.
     """
     def __init__(
-        self, optimizer, patience=5, min_lr=1e-6, factor=0.5
+        self,
+            optimizer,
+            patience: Optional[int] = 5,
+            min_lr: Optional[float] = 1e-6,
+            factor: Optional[float] = 0.5
     ):
         """
-        new_lr = old_lr * factor
-        :param optimizer: the optimizer we are using
-        :param patience: how many epochs to wait before updating the lr
-        :param min_lr: least lr value to reduce to while updating
-        :param factor: factor by which the lr should be updated
+        Parameters
+        ----------
+        optimizer
+            the optimizer we are using
+        patience
+            How many epochs to wait before updating the lr. Default being 5.
+        min_lr
+            Least lr value to reduce to while updating.
+        factor
+            Factor by which the lr should be updated, i.e. new_lr = old_lr * factor.
         """
         self.optimizer = optimizer
         self.patience = patience
@@ -429,7 +438,7 @@ def make_bf_from_cov(cov: torch.Tensor,
     cov
         The nxn covariance matrix.
     neighbor_size
-        The number of nearest neighbors used.
+        The number of nearest neighbors used used for NNGP approximation.
 
     Returns
     -------
@@ -441,6 +450,11 @@ def make_bf_from_cov(cov: torch.Tensor,
     See Also
     --------
     make_bf : Obtain NNGP approximation with implicit covariance matrix
+
+    Datta, Abhirup, et al. "Hierarchical nearest-neighbor Gaussian process models for large geostatistical datasets."
+    Journal of the American Statistical Association 111.514 (2016): 800-812.
+    Datta, Abhirup. "Sparse nearest neighbor Cholesky matrices in spatial statistics."
+    arXiv preprint arXiv:2102.13299 (2021).
     """
     n = cov.shape[0]
     B = torch.zeros((n, neighbor_size))
@@ -468,8 +482,8 @@ def make_bf_from_cov(cov: torch.Tensor,
 
 
 def make_bf(coord: torch.Tensor,  #### could add a make_bf from cov (resolved)
-            neighbor_size: int,
-            theta: tuple[float, float, float]
+            theta: tuple[float, float, float],
+            neighbor_size: Optional[int] = 20,
             ) -> Sparse_B:
     """Obtain NNGP approximation with implicit covariance matrix
 
@@ -483,7 +497,7 @@ def make_bf(coord: torch.Tensor,  #### could add a make_bf from cov (resolved)
     coord
         The nxd covariate array.
     neighbor_size
-        The number of nearest neighbors used.
+        The number of nearest neighbors used used for NNGP approximation. Default being 20.
     theta
         theta[0], theta[1], theta[2] represent \sigma^2, \phi, \tau in the exponential covariance family.
 
@@ -497,6 +511,9 @@ def make_bf(coord: torch.Tensor,  #### could add a make_bf from cov (resolved)
     See Also
     --------
     make_bf_from_cov : Obtain NNGP approximation of a covariance matrix
+
+    Datta, Abhirup. "Sparse nearest neighbor Cholesky matrices in spatial statistics."
+    arXiv preprint arXiv:2102.13299 (2021).
     """
     n = coord.shape[0]
     rank = make_rank(coord, neighbor_size)
@@ -539,7 +556,7 @@ def make_bf_np(coord: np.ndarray,  #### could add a make_bf from cov (resolved)
     coord
         The nxd coordinate array.
     neighbor_size
-        The number of nearest neighbors used.
+        The number of nearest neighbors used used for NNGP approximation.
     theta
         theta[0], theta[1], theta[2] represent \sigma^2, \phi, \tau in the exponential covariance family.
 
@@ -647,13 +664,18 @@ def make_cov(coord: torch.Tensor,
     -------
     cov
         A covariance matrix as torch.Tensor (dense representation) or NNGP_cov (sparse representation).
+
+    See Also
+    --------
+    Datta, Abhirup. "Sparse nearest neighbor Cholesky matrices in spatial statistics."
+    arXiv preprint arXiv:2102.13299 (2021).
     """
     if not NNGP:
         dist = distance(coord, coord)
         cov = make_cov_full(theta, dist, nuggets = True) #### could add a make_bf from cov (resolved)
         return cov
     else:
-        I_B, F_diag = make_bf(coord, neighbor_size, theta) #### could merge into one step
+        I_B, F_diag = make_bf(coord, theta, neighbor_size) #### could merge into one step
         cov = NNGP_cov(I_B.B, F_diag, I_B.Ind_list)
         return cov
 
@@ -713,7 +735,7 @@ def Simulation(n: int, p:int,
 def make_graph(X: torch.Tensor,
                Y: torch.Tensor,
                coord: torch.Tensor,
-               neighbor_size: int,
+               neighbor_size: Optional[int] = 20,
                Ind_list: Optional = None
                ) -> torch_geometric.data.Data:
     """Compose the data with graph information to work on.
@@ -730,7 +752,7 @@ def make_graph(X: torch.Tensor,
     coord
         nxd array of the coordinates
     neighbor_size
-        The number of nearest neighbors used.
+        The number of nearest neighbors used for NNGP approximation. Default being 20.
     Ind_list
         An optional index list. If provided, ommit the make_rank() step in the function.
 
@@ -794,7 +816,7 @@ def split_data(X: torch.Tensor,
     coord
         nxd array of the coordinates
     neighbor_size
-        The number of nearest neighbors used.
+        The number of nearest neighbors used for NNGP approximation. Default being 20.
     val_proportion
         The proportion of training set splitted as validation set.
     test_proportion
@@ -849,8 +871,9 @@ def split_loader(data: torch_geometric.data.Data,
     make_graph : Compose the data with graph information to work on.
     split_data : Split the data into training, validation, and testing parts and add the graph information respectively.
     torch_geometric.loader : A data loader that performs neighbor sampling as introduced in the
-    `"Inductive Representation Learning on Large Graphs"
-    <https://arxiv.org/abs/1706.02216>`_ paper.
+
+    Hamilton, Will, Zhitao Ying, and Jure Leskovec. "Inductive representation learning on large graphs."
+    Advances in neural information processing systems 30 (2017).
     """
     if batch_size is None:
         batch_size  = int(data.x.shape[0]/20)
@@ -866,13 +889,48 @@ def edit_batch(batch): #### Change to a method
     batch.edge_list = edge_list
     return batch
 
-def theta_update(theta0, residual, coord,
-                 neighbor_size: Optional[int] = 20):
+def theta_update(theta0: torch.Tensor,
+                 w: torch.Tensor,
+                 coord: torch.Tensor,
+                 neighbor_size: Optional[int] = 20
+                 ) -> np.array:
+    """Update the spatial parameters using maximum likelihood
+
+    This function updates the spatial parameters by assuming the observations are from a Gaussian Process with exponential
+    covariance function. Spatial coordinates and initial values of theta are input for building the covariance.
+    And L-BFGS-B algorithm is used to optimize the likelihood.
+    Since the likelihood is computed repeatedly, NNGP approximation is used for efficient computation of the log-likelihood,
+    with a default neighbor size being 20.
+
+    Parameters
+    ----------
+    theta0
+        Initial values of the spatial parameters.
+        theta[0], theta[1], theta[2] represent \sigma^2, \phi, \tau in the exponential covariance family.
+    w
+        Length n observations of the spatial random effect without any fixed effect.
+    coord
+        nx2 spatial coordinates of the observations.
+    neighbor_size
+        The number of nearest neighbors used for NNGP approximation. Default being 20.
+
+    Returns
+    -------
+    theta_updated: np.array
+        An updated tuple of the spatial paramaters.
+
+    See Also
+    --------
+    Datta, Abhirup, et al. "Hierarchical nearest-neighbor Gaussian process models for large geostatistical datasets."
+    Journal of the American Statistical Association 111.514 (2016): 800-812.
+    Zhu, Ciyou, et al. "Algorithm 778: L-BFGS-B: Fortran subroutines for large-scale bound-constrained optimization."
+    ACM Transactions on mathematical software (TOMS) 23.4 (1997): 550-560.
+    """
     warnings.filterwarnings("ignore")
-    residual = residual.detach().numpy()
+    w = w.detach().numpy()
     coord = coord.detach().numpy()
     theta = theta0.detach().numpy()
-    n_train = residual.shape[0]
+    n_train = w.shape[0]
     dist = distance_np(coord, coord)
     rank = make_rank(coord, neighbor_size)
     print('Theta updated from')
@@ -894,7 +952,7 @@ def theta_update(theta0, residual, coord,
                 bi = np.zeros(ind.shape)
             I_B_i = np.append(-bi, 1)
             F_i = cov[i, i] - np.inner(cov[ind, i], bi)
-            decor_res = np.sqrt(np.reciprocal(F_i)) * np.dot(I_B_i, residual[id])
+            decor_res = np.sqrt(np.reciprocal(F_i)) * np.dot(I_B_i, w[id])
             term1 += np.log(F_i)
             term2 += decor_res ** 2
         return (term1 + term2)
@@ -910,6 +968,44 @@ def krig_pred(w_train: torch.Tensor,
               neighbor_size: Optional[int] = 20,
               q: Optional[float] = 0.95
               ) -> torch.Tensor:
+    """Kriging prediction (Gaussian process regression) with confidence interval.
+
+    Kriging prediction on testing locations based on the observations on the training locations. The kriging procedure
+    assumes the observations are sampled from a Gaussian process, which is paramatrized here to have an exponential covariance
+    structure using theta = [\sigma^2, \phi, \tau]. NNGP appriximation is involved for efficient computation of matrix inverse.
+    The conditional variance (kriging variance) is used to build the confidence interval using the quantiles (a/2, 1-a/2).
+    (see https://arxiv.org/abs/2304.09157, section 4.3 for more details.)
+
+    Parameters
+    ----------
+    w_train
+        Training observations of the spatial random effect without any fixed effect.
+    coord_train
+        Spatial coordinates of the training observations.
+    coord_test
+        Spatial coordinates of the locations for prediction
+    theta
+        theta[0], theta[1], theta[2] represent \sigma^2, \phi, \tau in the exponential covariance family.
+    neighbor_size
+        The number of nearest neighbors used for NNGP approximation. Default being 20.
+    q
+        Confidence coverage for the prediction interval. Default being 0.95.
+
+
+    Returns
+    -------
+    w_test: torch.Tensor
+        The kriging prediction.
+    pred_U: torch.Tensor
+        Confidence upper bound.
+    pred_L: torch.Tensor
+        Confidence lower bound.
+
+    See Also
+    --------
+    Zhan, Wentao, and Abhirup Datta. "Neural networks for geospatial data."
+    arXiv preprint arXiv:2304.09157 (2023).
+    """
     sigma_sq, phi, tau = theta
     tau_sq = tau * sigma_sq
     n_test = coord_test.shape[0]
