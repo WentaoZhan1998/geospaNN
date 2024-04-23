@@ -21,7 +21,7 @@ class CovarianceVectorConv(MessagePassing):
         msg = torch.zeros(num_edges, self.neighbor_size)
         col_idc = edge_attr.flatten()
         row_idc = torch.tensor(range(num_edges))
-        msg[row_idc, col_idc] = make_cov_full(self.theta, distance(pos_i - pos_j, torch.zeros(1, 2))).squeeze()
+        msg[row_idc, col_idc] = make_cov_full(distance(pos_i - pos_j, torch.zeros(1, 2)), self.theta).squeeze()
         return msg
 
 
@@ -38,7 +38,7 @@ class InverseCovMatrixFromPositions(torch.nn.Module):
         neighbor_positions1 = neighbor_positions.unsqueeze(1)
         neighbor_positions2 = neighbor_positions.unsqueeze(2)
         dists = torch.sqrt(torch.sum((neighbor_positions1 - neighbor_positions2) ** 2, axis=-1))
-        cov = make_cov_full(self.theta, dists, nuggets=True)  # have to add nuggets (resolved)
+        cov = make_cov_full(dists, self.theta, nuggets=True)  # have to add nuggets (resolved)
         # cov_final = self.theta[0]*torch.eye(self.neighbor_size).repeat(batch_size, 1, 1)
         # for i in range(batch_size):
         #    cov_final[i, edge_list[i].reshape(1, -1, 1), edge_list[i].reshape(1, 1, -1)] = \

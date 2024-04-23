@@ -521,13 +521,13 @@ def make_bf(coord: torch.Tensor,  #### could add a make_bf from cov (resolved)
     ind_list = np.zeros((n, neighbor_size)).astype(int) - 1
     F = torch.zeros(n)
     for i in range(n):
-        F[i] = make_cov_full(theta, torch.tensor([0]), nuggets = True)
+        F[i] = make_cov_full(torch.tensor([0]), theta, nuggets = True)
         ind = rank[i, :][rank[i, :] <= i]
         if len(ind) == 0:
             continue
-        cov_sub = make_cov_full(theta, distance(coord[ind, :], coord[ind, :]), nuggets = True)
+        cov_sub = make_cov_full(distance(coord[ind, :], theta, coord[ind, :]), nuggets = True)
         if torch.linalg.matrix_rank(cov_sub) == cov_sub.shape[0]:
-            cov_vec = make_cov_full(theta, distance(coord[ind, :], coord[i, :])).reshape(-1)
+            cov_vec = make_cov_full(distance(coord[ind, :], theta, coord[i, :])).reshape(-1)
             #### nuggets is not specified since its off-diagonal
             bi = torch.linalg.solve(cov_sub, cov_vec)
             B[i, range(len(ind))] = bi
@@ -672,7 +672,7 @@ def make_cov(coord: torch.Tensor,
     """
     if not NNGP:
         dist = distance(coord, coord)
-        cov = make_cov_full(theta, dist, nuggets = True) #### could add a make_bf from cov (resolved)
+        cov = make_cov_full(dist, theta, nuggets = True) #### could add a make_bf from cov (resolved)
         return cov
     else:
         I_B, F_diag = make_bf(coord, theta, neighbor_size) #### could merge into one step
@@ -725,7 +725,7 @@ def Simulation(n: int, p:int,
     sigma_sq, phi, tau = theta
     tau_sq = tau * sigma_sq
 
-    cov = make_cov(theta, coord, neighbor_size)
+    cov = make_cov(coord, theta, neighbor_size)
     X = torch.rand(n, p)
     corerr = rmvn(torch.zeros(n), cov, sparse)
     Y = fx(X).reshape(-1) + corerr + torch.sqrt(tau_sq) * torch.randn(n)
@@ -1016,8 +1016,8 @@ def krig_pred(w_train: torch.Tensor,
     sigma_test = (sigma_sq + tau_sq) * torch.ones(n_test)
     for i in range(n_test):
         ind = rank[i, :]
-        cov_sub = make_cov_full(theta, distance(coord_train[ind, :], coord_train[ind, :]), nuggets=True)
-        cov_vec = make_cov_full(theta, distance(coord_train[ind, :], coord_test[i, :]), nuggets=False).reshape(-1)
+        cov_sub = make_cov_full(distance(coord_train[ind, :], coord_train[ind, :]), theta, nuggets=True)
+        cov_vec = make_cov_full(distance(coord_train[ind, :], coord_test[i, :]), theta, nuggets=False).reshape(-1)
         bi = torch.linalg.solve(cov_sub, cov_vec)
         w_test[i] = torch.dot(bi.T, w_train[ind]).squeeze()
         sigma_test[i] = sigma_test[i] - torch.dot(bi.reshape(-1), cov_vec)
