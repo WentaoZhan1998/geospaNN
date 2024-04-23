@@ -5,7 +5,7 @@
 
 ## Overview
 The Python package 'geospaNN' stands for a 'geospatial implementation of Neural Networks', where we impelements the 
-Neural Networks for geospatial data (NN-GLS) proposed in Zhan et.al (2023). 
+Neural Networks for analysis of geospatial data that explicitly accounts for spatial dependence (NN-GLS) proposed in Zhan et.al (2023). 
 Traditionally, the analysis of geospatial data treats the spatial outcome $y(s)$ as a combination of the fixed effect 
 (linear or non-linear) of covariates $x(s)$ and the spatially correlated random effect $w(s)$. 
 The classical Neural Networks (NN), as one of the most popular machine learning approaches,
