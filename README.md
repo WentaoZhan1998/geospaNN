@@ -53,7 +53,7 @@ import geospaNN
 import numpy as np
 
 # 1.
-def f5(X): return (10*np.sin(np.pi*X[:,0]*X[:,1]) + 20*(X[:,2]-0.5)**2 + 10*X[:,3] +5*X[:,4])/6;
+def f5(X): return (10*np.sin(np.pi*X[:,0]*X[:,1]) + 20*(X[:,2]-0.5)**2 + 10*X[:,3] +5*X[:,4])/6
 p = 5; funXY = f5
 
 # 2.
