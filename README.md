@@ -33,7 +33,7 @@ which makes it suitable for larger datasets towards a size of 1 million.
 ## Installation
 To install the development version of the package, use the following command in the terminal:
 ```commandline\
-pip install git+https://github.com/WentaoZhan1998/geospaNN.git#egg=geospaNN
+pip install https://github.com/WentaoZhan1998/geospaNN/archive/main.zip
 ```
 
 To install the pypi version, use the following command in the terminal:
