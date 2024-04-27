@@ -1,6 +1,7 @@
 [![PyPI](https://img.shields.io/pypi/v/geospaNN)](https://pypi.org/project/geospaNN)
 
 # GeospaNN - Neural networks for geospatial data
+**Authors**: Wentao Zhan (<wzhan3@jhu.edu>), Abhirup Datta (<abhidatta@jhu.edu>)
 ## A package based on the paper: [Neural networks for geospatial data](https://arxiv.org/pdf/2304.09157.pdf)
 **GeospaNN** is a formal implementation of the Neural Networks for geospatial data proposed in Zhan et.al (2023). 
 The package is developed using [PyTorch](https://pytorch.org/) and under the framework of [PyG](https://pytorch-geometric.readthedocs.io/en/latest/) library. 
