@@ -2,9 +2,10 @@
 
 # GeospaNN - Neural networks for geospatial data
 ## A package based on the paper: [Neural networks for geospatial data](https://arxiv.org/pdf/2304.09157.pdf)
+**GeospaNN** is a formal implementation of the Neural Networks for geospatial data proposed in Zhan et.al (2023). The package is developed using [PyTorch](https://pytorch.org/) and under the framework of [PyG]([https://pytorch-geometric.readthedocs.io/en/latest/notes/installation.html](https://pytorch-geometric.readthedocs.io/en/latest/)) library. Combining the idea of Graph Neural Networks (GNN) and spatial prediction, **geospaNN** simultaneously provides efficient estimation for the non-spatial effect and prediction for the spatial effect, and can sacle up to hundreds of thousands of samples. Users are welcome to provide any helpful suggestions and comments.
 
 ## Overview
-The Python package 'geospaNN' stands for a 'geospatial implementation of Neural Networks', where we impelements the 
+The Python package **geospaNN**' stands for a 'geospatial implementation of Neural Networks', where we impelements the 
 Neural Networks for analysis of geospatial data that explicitly accounts for spatial dependence (NN-GLS) proposed in Zhan et.al (2023). 
 Traditionally, the analysis of geospatial data treats the spatial outcome $y(s)$ as a combination of the fixed effect 
 (linear or non-linear) of covariates $x(s)$ and the spatially correlated random effect $w(s)$. 
@@ -16,22 +17,26 @@ everything is related to everything else, but nearby things are more related tha
 On the other hand, traditional geospatial data relies on the model-based approaches to handle the spatial dependency. 
 For example, by assuming $w(s)$ being a stationary Gaussian process (GP), simple techniques like kriging can provide 
 powerful prediction performance by properly aggregating the neighboring information.
-Our package geospaNN takes the advantages from both perspective and provides an efficient tool for geospatial data analysis.
+Our package **geospaNN** takes the advantages from both perspective and provides an efficient tool for geospatial data analysis.
 In the package, GP is involved as a trainable target into the Neural Network and used to guide the neighborhood aggregation on
 the output layer. Equivalently, a more efficient loss function is composed for the geospatial setting to improve the 
 estimation, and the idea mimics the comparison between OLS and GLS in linear regression.
-As a downstream of estimating $f(x)$, geospaNN provides accurate spatial prediction, thus concludes a complete geospatial analysis pipeline.
-It should be highlighted that 'geospaNN' is compatible with the framework of Graph Neural Networks (GNN), thus being highly generalizable.
-(The implementation of 'geospaNN' uses the 'torch_geom' module.)
+As a downstream of estimating $f(x)$, **geospaNN** provides accurate spatial prediction, thus concludes a complete geospatial analysis pipeline.
+It should be highlighted that **geospaNN**' is compatible with the framework of Graph Neural Networks (GNN), thus being highly generalizable.
+(The implementation of **geospaNN**' uses the 'torch_geom' module.)
 To accelerate the training process for the GP, 
-'geospaNN' approximate the working correlation structure using Nearest Neighbor Gaussian Process (NNGP) (Datta et al., 2016) 
+**geospaNN**' approximate the working correlation structure using Nearest Neighbor Gaussian Process (NNGP) (Datta et al., 2016) 
 which makes it suitable for larger datasets towards a size of 1 million.
 
 ![Illustration of NN-GLS](./data/nngls.png)
 
 
 ## Installation
-To install the development version of the package, use the following command in the terminal:
+(Currently) to install the development version of the package, a pre-installed PyTorch and PyG libraries are needed. Installation in the following order is recommended to avoid any compilation issue.
+1. To install PyTorch, find and install the binary suitable for your machine [here](https://pytorch.org/).
+2. Then to install the PyG library, find and install the proper binary [here](https://pytorch-geometric.readthedocs.io/en/latest/notes/installation.html).
+3. Make sure to also install the dependencies including *pyg_lib*, *torch_scatter*, *torch_sparse*, *torch_cluster*, and *torch_spline_conv*.
+Once PyTorch and PyG are successfully installed, use the following command in the terminal:
 ```commandline\
 pip install https://github.com/WentaoZhan1998/geospaNN/archive/main.zip
 ```
@@ -120,7 +125,7 @@ train_estimate = model.estimate(data_train.x)
 ```
 
 Kriging prediction from the model. The first variable is supposed to be the data used for training, and the second 
-variable a torch_geometric.data.Data object which can be composed by 'geospaNN.make_graph()'.
+variable a torch_geometric.data.Data object which can be composed by geospaNN.make_graph()'.
 ```commandline\
 test_predict = model.predict(data_train, data_test)
 ```
@@ -133,7 +138,7 @@ test_predict = model.predict(data_train, data_test)
 * The meteorological data is collected from the [National Centers for Environmental Prediction’s (NCEP) North American Regional Reanalysis (NARR) product](https://psl.noaa.gov/data/gridded/data.narr.html). The '.nc' (netCDF) files should be downloaded from the website and saved in the root directory to run 'realdata_preprocess.py'. Otherwise, one may skip the preprocessing and use covariate files directly. 
 
 ## Citation
-Please cite the following paper when you use geospaNN
+Please cite the following paper when you use **geospaNN**:
 
 > Zhan, Wentao, and Abhirup Datta. "Neural networks for geospatial data." arXiv preprint arXiv:2304.09157 (2023).
 
