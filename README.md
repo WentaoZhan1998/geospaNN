@@ -36,6 +36,7 @@ which makes it suitable for larger datasets towards a size of 1 million.
 1. To install PyTorch, find and install the binary suitable for your machine [here](https://pytorch.org/).
 2. Then to install the PyG library, find and install the proper binary [here](https://pytorch-geometric.readthedocs.io/en/latest/notes/installation.html).
 3. Make sure to also install the dependencies including *pyg_lib*, *torch_scatter*, *torch_sparse*, *torch_cluster*, and *torch_spline_conv*.
+
 Once PyTorch and PyG are successfully installed, use the following command in the terminal:
 ```commandline\
 pip install https://github.com/WentaoZhan1998/geospaNN/archive/main.zip
