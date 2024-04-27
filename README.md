@@ -2,7 +2,12 @@
 
 # GeospaNN - Neural networks for geospatial data
 ## A package based on the paper: [Neural networks for geospatial data](https://arxiv.org/pdf/2304.09157.pdf)
-**GeospaNN** is a formal implementation of the Neural Networks for geospatial data proposed in Zhan et.al (2023). The package is developed using [PyTorch](https://pytorch.org/) and under the framework of [PyG]([https://pytorch-geometric.readthedocs.io/en/latest/notes/installation.html](https://pytorch-geometric.readthedocs.io/en/latest/)) library. Combining the idea of Graph Neural Networks (GNN) and spatial prediction, **geospaNN** simultaneously provides efficient estimation for the non-spatial effect and prediction for the spatial effect, and can sacle up to hundreds of thousands of samples. Users are welcome to provide any helpful suggestions and comments.
+**GeospaNN** is a formal implementation of the Neural Networks for geospatial data proposed in Zhan et.al (2023). 
+The package is developed using [PyTorch](https://pytorch.org/) and under the framework of [PyG](https://pytorch-geometric.readthedocs.io/en/latest/) library. 
+Combining the idea of Graph Neural Networks (GNN) and spatial prediction, 
+**geospaNN** simultaneously provides efficient estimation for the non-spatial effect and prediction for the spatial effect, 
+and can sacle up to hundreds of thousands of samples. 
+Users are welcome to provide any helpful suggestions and comments.
 
 ## Overview
 The Python package **geospaNN**' stands for a 'geospatial implementation of Neural Networks', where we impelements the 
