@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "geospaNN"
-version = "0.1.2"
+version = "0.1.3"
 authors = [
   { name="Wentao Zhan", email="wzhan3@jhu.edu" },
     { name="Abhirup Datta", email="abhidatta@jhu.edu" }
@@ -36,6 +36,6 @@ dependencies = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/WentaoZhan1998/NN-GLS"
-Repository = "https://github.com/WentaoZhan1998/NN-GLS.git"
-Issues = "https://github.com/WentaoZhan1998/NN-GLS/issues"
+Homepage = "https://github.com/WentaoZhan1998/geospaNN"
+Repository = "https://github.com/WentaoZhan1998/geospaNN.git"
+Issues = "https://github.com/WentaoZhan1998/geospaNN/issues"
