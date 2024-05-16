@@ -39,7 +39,14 @@ and thus constitutes a complete geospatial analysis pipeline.
 To accelerate the training process for the GP, **geospaNN** approximates the working correlation structure using 
 Nearest Neighbor Gaussian Process (NNGP) (Datta et al., 2016) which makes it suitable for larger datasets towards a size of 1 million.
 
-![Illustration of NN-GLS](https://github.com/WentaoZhan1998/geospaNN/blob/main/data/nngls.png)
+<div align="center">
+<a href="https://arxiv.org/pdf/2304.09157.pdf">
+  <img
+    src="https://github.com/WentaoZhan1998/geospaNN/blob/main/data/nngls.png"
+    width="800"
+  >
+</a>
+</div>
 
 ## Installation
 (Currently) to install the development version of the package, a pre-installed PyTorch and PyG libraries are needed. Installation in the following order is recommended to avoid any compilation issue.
