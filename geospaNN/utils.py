@@ -898,7 +898,7 @@ def theta_update(theta0: torch.Tensor,
                  coord: torch.Tensor,
                  neighbor_size: Optional[int] = 20
                  ) -> np.array:
-    """Update the spatial parameters using maximum likelihood
+    """Update the spatial parameters using maximum likelihood.
 
     This function updates the spatial parameters by assuming the observations are from a Gaussian Process with exponential
     covariance function. Spatial coordinates and initial values of theta are input for building the covariance.

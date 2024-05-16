@@ -42,7 +42,7 @@ Nearest Neighbor Gaussian Process (NNGP) (Datta et al., 2016) which makes it sui
 <div align="center">
 <a href="https://arxiv.org/pdf/2304.09157.pdf">
   <img
-    src="https://github.com/WentaoZhan1998/geospaNN/blob/main/data/nngls.png"
+    src="https://github.com/WentaoZhan1998/geospaNN/blob/main/data/nngls.png?raw=True"
     width="800"
   >
 </a>

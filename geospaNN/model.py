@@ -328,7 +328,7 @@ class nngls(torch.nn.Module):
         Parameters
         ----------
         data_train: torch_geometric.data.Data
-            Traning data containing x, y and spatial coordinates, can be the output of split_data() or make_graph().
+            Training data containing x, y and spatial coordinates, can be the output of split_data() or make_graph().
         data_test: torch_geometric.data.Data
             Testing data containing x, y and spatial coordinates, can be the output of split_data() or make_graph().
         CI: bool
