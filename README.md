@@ -52,8 +52,7 @@ Once PyTorch and PyG are successfully installed, use the following command in th
 pip install https://github.com/WentaoZhan1998/geospaNN/archive/main.zip
 ```
 
-To install the pypi version, use the following command in the terminal (currently the pypi version does not support the 
-torch_geometric version>= 2.4.0, this will be fixed in the next version update):
+To install the pypi version, use the following command in the terminal:
 ```commandline\
 pip install geospaNN
 ```
