@@ -1,5 +1,5 @@
 import torch
-#import nngls
+import geospaNN
 import numpy as np
 import time
 import pandas as pd
@@ -19,7 +19,7 @@ nn = 20
 batch_size = 50
 
 torch.manual_seed(2023 + rand)
-X, Y, coord, cov, corerr = Simulation(n, p, nn, funXY, theta, range=[0, 10])
+X, Y, coord, cov, corerr = geospaNN.Simulation(n, p, nn, funXY, theta, range=[0, 10])
 if False:
     np.random.seed(2023+rand)
     X, Y, I_B, F_diag, rank, coord, cov, corerr = Simulate(n, p, funXY, nn, theta.detach().numpy(), method=method, a=0,
@@ -29,8 +29,8 @@ if False:
     id = range(int(n))
     print(BRISC_estimation(corerr[id].detach().numpy(), None, coord[id,:].detach().numpy())[1])
     theta_update(torch.tensor([1, 1.5, 0.01]), corerr[id], coord[id,:], neighbor_size = 20)
-data = make_graph(X, Y, coord, nn)
-data_train, data_val, data_test = split_data(X, Y, coord, neighbor_size=20,
+data = geospaNN.make_graph(X, Y, coord, nn)
+data_train, data_val, data_test = geospaNN.split_data(X, Y, coord, neighbor_size=20,
                                              test_proportion=0.2)
 
 mlp = torch.nn.Sequential(
@@ -42,9 +42,9 @@ mlp = torch.nn.Sequential(
     torch.nn.ReLU(),
     torch.nn.Linear(10, 1),
 )
-nn_model = nn_train(mlp, lr =  0.01, min_delta = 0.001)
+nn_model = geospaNN.nn_train(mlp, lr =  0.01, min_delta = 0.001)
 training_log = nn_model.train(data_train, data_val, data_test)
-theta0 = theta_update(torch.tensor([1, 1.5, 0.01]), mlp(data_train.x).squeeze() - data_train.y, data_train.pos, neighbor_size = 20)
+theta0 = geospaNN.theta_update(torch.tensor([1, 1.5, 0.01]), mlp(data_train.x).squeeze() - data_train.y, data_train.pos, neighbor_size = 20)
 mlp = torch.nn.Sequential(
     torch.nn.Linear(p, 50),
     torch.nn.ReLU(),
@@ -54,7 +54,7 @@ mlp = torch.nn.Sequential(
     torch.nn.ReLU(),
     torch.nn.Linear(10, 1),
 )
-model = nngls(p=p, neighbor_size=nn, coord_dimensions=2, mlp=mlp, theta=torch.tensor(theta0))
+model = geospaNN.nngls(p=p, neighbor_size=nn, coord_dimensions=2, mlp=mlp, theta=torch.tensor(theta0))
 nngls_model = nngls_train(model, lr =  0.01, min_delta = 0.001)
 training_log = nngls_model.train(data_train, data_val, data_test,
                                  Update_init = 100, Update_step = 10)

@@ -4,6 +4,26 @@ import torch
 from typing import Optional
 
 class nn_train():
+    """
+    A message-passing layer that collect the coordinates of the nearest neighborhood. For neighbor size k, batch size b,
+    and coordinates' dimension d, the message-passing layer will return a bx(k*d) tensor, where the ith row is the
+    concatenation of k d-dimensional coordinates representing the k-nearest neighborhood of location i.
+    ...
+
+    Attributes
+    ----------
+    neighbor_size : int
+        Size of nearest neighbor used for NNGP approximation. i.e. k in the documentation.
+
+    coord_dimension : int
+        Dimension of the coordinates, i.e. d in the documentation.
+
+    Methods
+    -------
+    forward()
+
+    message()
+    """
     def __init__(
             self,
             model,

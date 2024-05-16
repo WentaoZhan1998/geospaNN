@@ -119,7 +119,7 @@ class Sparse_B():
     n : int
         The number of samples.
     neighbor_size : int
-        i.e. p in the documentation, the largest number of non-zero values in each row of B_dense.
+        i.e. k in the documentation, the largest number of non-zero values in each row of B_dense.
     Ind_list : numpy.array
         The nxp index array indicating the location where values in B was in B_dense. For example, the [i,j]'s index is k
         means that B_dense[i,k] = B[i,j].
@@ -320,6 +320,10 @@ def rmvn(mu: torch.Tensor,
             res = cov.correlate(torch.randn(1, n).reshape(-1)) + mu
         else:
             warnings.warn("To be implemented.")
+    else:
+        warnings.warn("Covariance matrix should be in the format of torch.Tensor or NNGP_cov.")
+        return
+
     return  res.reshape(-1)
 
 def make_rank(coord: torch.Tensor,
@@ -336,10 +340,10 @@ def make_rank(coord: torch.Tensor,
     coord
         The nxd coordinates array of target locations.
     neighbor_size
-    `   Suppose neighbor_size = p, only the top p nearest indexes will be returned.
+    `   Suppose neighbor_size = k, only the top k-nearest indexes will be returned.
     coord_ref
         The n_refxd coordinates array of reference locations. If None, use the target set itself as the reference.
-        (Any location's neighbor does not includes itself.)
+        (Any location's neighbor does not include itself.)
 
     Returns
     -------
@@ -990,7 +994,6 @@ def krig_pred(w_train: torch.Tensor,
         The number of nearest neighbors used for NNGP approximation. Default being 20.
     q
         Confidence coverage for the prediction interval. Default being 0.95.
-
 
     Returns
     -------

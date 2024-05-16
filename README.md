@@ -1,41 +1,45 @@
-[![PyPI](https://img.shields.io/pypi/v/geospaNN)](https://pypi.org/project/geospaNN)
+[![PyPI](https://img.shields.io/pypi/v/geospaNN?logo=PyPI)](https://pypi.org/project/geospaNN)
+![PyPI - Python Version](https://img.shields.io/pypi/pyversions/geospaNN)
 
 # GeospaNN - Neural networks for geospatial data
 **Authors**: Wentao Zhan (<wzhan3@jhu.edu>), Abhirup Datta (<abhidatta@jhu.edu>)
 ## A package based on the paper: [Neural networks for geospatial data](https://arxiv.org/pdf/2304.09157.pdf)
-**GeospaNN** is a formal implementation of the Neural Networks for geospatial data proposed in Zhan et.al (2023). 
-The package is developed using [PyTorch](https://pytorch.org/) and under the framework of [PyG](https://pytorch-geometric.readthedocs.io/en/latest/) library. 
-Combining the idea of Graph Neural Networks (GNN) and spatial prediction, 
-**geospaNN** simultaneously provides efficient estimation for the non-spatial effect and prediction for the spatial effect, 
-and can sacle up to hundreds of thousands of samples. 
+**GeospaNN** is a formal implementation of NN-GLS, the Neural Networks for geospatial data proposed in Zhan et.al (2023), 
+that explicitly accounts for spatial correlation in the data. The package is developed using [PyTorch](https://pytorch.org/) and 
+under the framework of [PyG](https://pytorch-geometric.readthedocs.io/en/latest/) library. 
+NN-GLS is a geographically-informed Graph Neural Network (GNN) for analyzing large and irregular geospatial data, 
+that combines multi-layer perceptrons, Gaussian processes, and generalized least squares (GLS) loss. 
+NN-GLS offers both regression function estimation and spatial prediction, and can scale up to sample sizes of hundreds of thousands. 
 Users are welcome to provide any helpful suggestions and comments.
 
 ## Overview
-The Python package **geospaNN**' stands for a 'geospatial implementation of Neural Networks', where we impelements the 
-Neural Networks for analysis of geospatial data that explicitly accounts for spatial dependence (NN-GLS) proposed in Zhan et.al (2023). 
-Traditionally, the analysis of geospatial data treats the spatial outcome $y(s)$ as a combination of the fixed effect 
-(linear or non-linear) of covariates $x(s)$ and the spatially correlated random effect $w(s)$. 
-The classical Neural Networks (NN), as one of the most popular machine learning approaches,
-could be used to capture the non-linear fixed effect. 
-However, while NN assume the independence among observations, geospatial data naturally inherits spatial dependency, 
-which is interpreted by Tobler's first law of geography: 
-everything is related to everything else, but nearby things are more related than distant things. 
-On the other hand, traditional geospatial data relies on the model-based approaches to handle the spatial dependency. 
-For example, by assuming $w(s)$ being a stationary Gaussian process (GP), simple techniques like kriging can provide 
-powerful prediction performance by properly aggregating the neighboring information.
-Our package **geospaNN** takes the advantages from both perspective and provides an efficient tool for geospatial data analysis.
-In the package, GP is involved as a trainable target into the Neural Network and used to guide the neighborhood aggregation on
-the output layer. Equivalently, a more efficient loss function is composed for the geospatial setting to improve the 
-estimation, and the idea mimics the comparison between OLS and GLS in linear regression.
-As a downstream of estimating $f(x)$, **geospaNN** provides accurate spatial prediction, thus concludes a complete geospatial analysis pipeline.
-It should be highlighted that **geospaNN**' is compatible with the framework of Graph Neural Networks (GNN), thus being highly generalizable.
-(The implementation of **geospaNN**' uses the 'torch_geom' module.)
-To accelerate the training process for the GP, 
-**geospaNN**' approximate the working correlation structure using Nearest Neighbor Gaussian Process (NNGP) (Datta et al., 2016) 
-which makes it suitable for larger datasets towards a size of 1 million.
+The Python package **geospaNN** stands for 'geospatial Neural Networks', where we implement NN-GLS, 
+neural networks tailored for analysis of geospatial data that explicitly accounts for spatial dependence (Zhan et.al, 2023). 
+Geospatial data naturally exhibits spatial correlation or dependence and traditional geostatistical analysis often relies on 
+model-based approaches to handle the spatial dependency, treating the spatial outcome $y(s)$ as a linear regression on covariates $x(s)$ and 
+modeling dependency through the spatially correlated errors. 
+For example, using Gaussian processes (GP) to model dependent errors, 
+simple techniques like kriging can provide powerful prediction performance by properly aggregating the neighboring information. 
+On the other hand, artificial Neural Networks (NN), one of the most popular machine learning approaches, could be used to estimate non-linear regression functions. 
+However, common neural networks like multi-layer perceptrons (MLP) does not incorporate correlation among data units.
 
-![Illustration of NN-GLS](./data/nngls.png)
+Our package **geospaNN** takes the advantages from both perspectives and provides an efficient tool for geospatial data analysis. 
+In NN-GLS, an MLP is used to model the non-linear regression function while a GP is used to model the spatial dependence. 
+The resulting loss function then becomes a generalized least squares (GLS) loss informed by the GP covariance matrix, 
+thereby explicitly incorporating spatial correlation into the neural network optimization. 
+The idea mimics the extension of ordinary least squares (OLS) loss to GLS loss in linear regression for dependent data.
 
+Zhan and Datta, 2023 shows that neural networks with GLS loss can be represented as a graph neural network, 
+with the GP covariances guiding the neighborhood aggregation on the output layer. 
+Thus NN-GLS is implemented in **geospaNN** with the framework of Graph Neural Networks (GNN), and is highly generalizable. 
+(The implementation of geospaNN' uses the 'torch_geom' module.)
+
+**geospaNN** provides an estimate of regression function 𝑓(𝑥) as well as accurate spatial predictions using Gaussian process (kriging), 
+and thus constitutes a complete geospatial analysis pipeline. 
+To accelerate the training process for the GP, **geospaNN** approximates the working correlation structure using 
+Nearest Neighbor Gaussian Process (NNGP) (Datta et al., 2016) which makes it suitable for larger datasets towards a size of 1 million.
+
+![Illustration of NN-GLS](https://github.com/WentaoZhan1998/geospaNN/blob/main/data/nngls.png)
 
 ## Installation
 (Currently) to install the development version of the package, a pre-installed PyTorch and PyG libraries are needed. Installation in the following order is recommended to avoid any compilation issue.
@@ -43,12 +47,13 @@ which makes it suitable for larger datasets towards a size of 1 million.
 2. Then to install the PyG library, find and install the proper binary [here](https://pytorch-geometric.readthedocs.io/en/latest/notes/installation.html).
 3. Make sure to also install the dependencies including *pyg_lib*, *torch_scatter*, *torch_sparse*, *torch_cluster*, and *torch_spline_conv*.
 
-Once PyTorch and PyG are successfully installed, use the following command in the terminal:
+Once PyTorch and PyG are successfully installed, use the following command in the terminal for the latest version:
 ```commandline\
 pip install https://github.com/WentaoZhan1998/geospaNN/archive/main.zip
 ```
 
-To install the pypi version, use the following command in the terminal:
+To install the pypi version, use the following command in the terminal (currently the pypi version does not support the 
+torch_geometric version>= 2.4.0, this will be fixed in the next version update):
 ```commandline\
 pip install geospaNN
 ```
@@ -147,10 +152,11 @@ test_predict = model.predict(data_train, data_test)
 ## Citation
 Please cite the following paper when you use **geospaNN**:
 
-> Zhan, Wentao, and Abhirup Datta. "Neural networks for geospatial data." arXiv preprint arXiv:2304.09157 (2023).
+> Zhan, Wentao, and Abhirup Datta. "Neural networks for geospatial data." Journal of the American Statistical Association Theory and Methods (2024, in press) arXiv preprint arXiv:2304.09157
+ 
 
 ## References
 
 Datta, Abhirup, Sudipto Banerjee, Andrew O. Finley, and Alan E. Gelfand. "Hierarchical nearest-neighbor Gaussian process models for large geostatistical datasets." Journal of the American Statistical Association 111, no. 514 (2016): 800-812. [link](https://www.tandfonline.com/doi/full/10.1080/01621459.2015.1044091)
 
-Zhan, Wentao, and Abhirup Datta. "Neural networks for geospatial data." arXiv preprint arXiv:2304.09157 (2023). [link](https://arxiv.org/abs/2304.09157)
+Zhan, Wentao, and Abhirup Datta. "Neural networks for geospatial data." Journal of the American Statistical Association Theory and Methods (2024, in press) arXiv preprint arXiv:2304.09157 [link](https://arxiv.org/abs/2304.09157)
