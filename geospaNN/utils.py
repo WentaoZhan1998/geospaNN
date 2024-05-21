@@ -1013,7 +1013,7 @@ def krig_pred(w_train: torch.Tensor,
     tau_sq = tau * sigma_sq
     n_test = coord_test.shape[0]
 
-    rank = make_rank(coord_train, neighbor_size, coord_test=coord_test)
+    rank = make_rank(coord_train, neighbor_size, coord_test)
 
     w_test = torch.zeros(n_test)
     sigma_test = (sigma_sq + tau_sq) * torch.ones(n_test)
