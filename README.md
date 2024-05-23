@@ -3,7 +3,7 @@
 
 # GeospaNN - Neural networks for geospatial data
 **Authors**: Wentao Zhan (<wzhan3@jhu.edu>), Abhirup Datta (<abhidatta@jhu.edu>)
-## A package based on the paper: [Neural networks for geospatial data](https://arxiv.org/pdf/2304.09157.pdf)
+## A package based on the paper: [Neural networks for geospatial data](https://www.tandfonline.com/doi/abs/10.1080/01621459.2024.2356293?casa_token=UaGsBumw4JAAAAAA:RD4cFpZW7lk3pu8Q5uVdxm5o3_RXWKRLXgxByEgl68qENKJfiNsS_Ci5izQ9WMQkZUKgSXasagyLQw)
 **GeospaNN** is a formal implementation of NN-GLS, the Neural Networks for geospatial data proposed in Zhan et.al (2023), 
 that explicitly accounts for spatial correlation in the data. The package is developed using [PyTorch](https://pytorch.org/) and 
 under the framework of [PyG](https://pytorch-geometric.readthedocs.io/en/latest/) library. 
@@ -40,7 +40,7 @@ To accelerate the training process for the GP, **geospaNN** approximates the wor
 Nearest Neighbor Gaussian Process (NNGP) (Datta et al., 2016) which makes it suitable for larger datasets towards a size of 1 million.
 
 <div align="center">
-<a href="https://arxiv.org/pdf/2304.09157.pdf">
+<a href="https://www.tandfonline.com/doi/abs/10.1080/01621459.2024.2356293?casa_token=UaGsBumw4JAAAAAA:RD4cFpZW7lk3pu8Q5uVdxm5o3_RXWKRLXgxByEgl68qENKJfiNsS_Ci5izQ9WMQkZUKgSXasagyLQw">
   <img
     src="https://github.com/WentaoZhan1998/geospaNN/blob/main/data/nngls.png?raw=True"
     width="800"
@@ -151,6 +151,8 @@ test_predict = model.predict(data_train, data_test)
 ## Running examples:
 * A simulation experiment with a common spatial setting is shown [here](https://github.com/WentaoZhan1998/geospaNN/blob/main/Example_simulation.ipynb).
 
+* For the linear regression case, a performance comparison with the R package [BRISC](https://github.com/ArkajyotiSaha/BRISC) is shown [here](https://github.com/WentaoZhan1998/geospaNN/blob/main/Example_linear.ipynb).
+
 * A real data experiment is shown [here](https://github.com/WentaoZhan1998/geospaNN/blob/main/Example_realdata.ipynb). 
 * The PM2.5 data is collected from the [U.S. Environmental Protection Agency](https://www.epa.gov/outdoor-air-quality-data/download-daily-data) datasets for each state are collected and bound together to obtain 'pm25_2022.csv'. daily PM2.5 files are subsets of 'pm25_2022.csv' produced by 'realdata_preprocess.py'. One can skip the preprocessing and use the daily files directory. 
 * The meteorological data is collected from the [National Centers for Environmental Prediction’s (NCEP) North American Regional Reanalysis (NARR) product](https://psl.noaa.gov/data/gridded/data.narr.html). The '.nc' (netCDF) files should be downloaded from the website and saved in the root directory to run 'realdata_preprocess.py'. Otherwise, one may skip the preprocessing and use covariate files directly. 
@@ -158,11 +160,11 @@ test_predict = model.predict(data_train, data_test)
 ## Citation
 Please cite the following paper when you use **geospaNN**:
 
-> Zhan, Wentao, and Abhirup Datta. "Neural networks for geospatial data." Journal of the American Statistical Association Theory and Methods (2024, in press) arXiv preprint arXiv:2304.09157
+> Zhan, Wentao, and Abhirup Datta. "Neural networks for geospatial data." Journal of the American Statistical Association just-accepted (2024): 1-21.
  
 
 ## References
 
 Datta, Abhirup, Sudipto Banerjee, Andrew O. Finley, and Alan E. Gelfand. "Hierarchical nearest-neighbor Gaussian process models for large geostatistical datasets." Journal of the American Statistical Association 111, no. 514 (2016): 800-812. [link](https://www.tandfonline.com/doi/full/10.1080/01621459.2015.1044091)
 
-Zhan, Wentao, and Abhirup Datta. "Neural networks for geospatial data." Journal of the American Statistical Association Theory and Methods (2024, in press) arXiv preprint arXiv:2304.09157 [link](https://arxiv.org/abs/2304.09157)
+Zhan, Wentao, and Abhirup Datta. "Neural networks for geospatial data." Journal of the American Statistical Association just-accepted (2024): 1-21.
