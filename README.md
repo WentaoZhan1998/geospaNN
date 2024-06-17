@@ -54,6 +54,14 @@ Nearest Neighbor Gaussian Process (NNGP) (Datta et al., 2016) which makes it sui
 2. Then to install the PyG library, find and install the proper binary [here](https://pytorch-geometric.readthedocs.io/en/latest/notes/installation.html).
 3. Make sure to also install the dependencies including *pyg_lib*, *torch_scatter*, *torch_sparse*, *torch_cluster*, and *torch_spline_conv*.
 
+```commandline\
+pip install torch==2.0.0 --no-cache-dir
+pip install torch-scatter -f https://data.pyg.org/whl/torch-2.0.0.html --no-cache-dir
+pip install torch-sparse -f https://data.pyg.org/whl/torch-2.0.0.html --no-cache-dir
+pip install torch-cluster -f https://data.pyg.org/whl/torch-2.0.0.html --no-cache-dir
+pip install torch_geometric --no-cache-dir
+```
+
 Once PyTorch and PyG are successfully installed, use the following command in the terminal for the latest version:
 ```commandline\
 pip install https://github.com/WentaoZhan1998/geospaNN/archive/main.zip
