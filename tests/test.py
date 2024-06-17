@@ -3,50 +3,108 @@ import geospaNN
 import numpy as np
 import time
 import pandas as pd
+import seaborn as sns
+import matplotlib.pyplot as plt
+import matplotlib.image as img
+import geopandas as gpd
+from shapely.geometry import Point
+from scipy import spatial, interpolate
+import warnings
+warnings.filterwarnings("ignore")
 
-def f5(X): return (10*np.sin(np.pi*X[:,0]*X[:,1]) + 20*(X[:,2]-0.5)**2 + 10*X[:,3] +5*X[:,4])/6
+url = "https://www2.census.gov/geo/tiger/GENZ2018/shp/cb_2018_us_nation_20m.zip"
+us = gpd.read_file(url).explode()
+us = us.loc[us.geometry.apply(lambda x: x.exterior.bounds[2])<-60]
 
-sigma = 1
-phi = 3
-tau = 0.01
-theta = torch.tensor([sigma, phi / np.sqrt(2), tau])
+df_covariates = pd.read_csv('./data/covariate0605.csv')
+df_pm25 = pd.read_csv('./data/pm25_0605.csv')
+df_pm25 = df_pm25.loc[df_pm25.Latitude < 50]
 
-p = 5; funXY = f5
+x_min,y_min,x_max,y_max = np.array([np.min(df_covariates['long']), np.min(df_covariates['lat']),
+    np.max(df_covariates['long']), np.max(df_covariates['lat'])])
+arr1 = np.mgrid[x_min:x_max:101j, y_min:y_max:101j]
 
-n = 1000
-rand = 0
+# extract the x and y coordinates as flat arrays
+arr1x = np.ravel(arr1[0])
+arr1y = np.ravel(arr1[1])
+# using the X and Y columns, build a dataframe, then the geodataframe
+df = pd.DataFrame({'X':arr1x, 'Y':arr1y})
+df['coords'] = list(zip(df['X'], df['Y']))
+df['coords'] = df['coords'].apply(Point)
+
+gdf = gpd.GeoDataFrame(df, geometry=gpd.points_from_xy(x=df.X, y=df.Y),crs = us.crs)
+inUS = gdf['geometry'].apply(lambda s: s.within(us.geometry.unary_union))
+
+lonlat_pm25=df_pm25.values[:,[1,2]]
+near = df_covariates.values[:,[1,2]]
+tree = spatial.KDTree(list(zip(near[:,0].ravel(), near[:,1].ravel())))
+idx = tree.query(lonlat_pm25)[1]
+df_pm25_mean = df_pm25.assign(neighbor = idx).groupby('neighbor')['PM25'].mean()
+idx_new = df_pm25_mean.index.values
+pm25 = df_pm25_mean.values
+z = pm25[:,None]
+
+lon = df_covariates.values[:,1]
+lat = df_covariates.values[:,2]
+
+f = interpolate.Rbf(lon[idx_new], lat[idx_new], z, function = 'inverse')
+x_test = gdf.loc[inUS,:].X
+y_test = gdf.loc[inUS,:].Y
+z_test = f(x_test, y_test)
+
+lon = df_covariates.values[:,1]
+lat = df_covariates.values[:,2]
+covariates = df_covariates.values[:,3:]
+normalized_lon = (lon-min(lon))/(max(lon)-min(lon))
+normalized_lat = (lat-min(lat))/(max(lat)-min(lat))
+normalized_x_test = (x_test-min(lon))/(max(lon)-min(lon))
+normalized_y_test = (y_test-min(lat))/(max(lat)-min(lat))
+
+s_obs = np.vstack((normalized_lon[idx_new],normalized_lat[idx_new])).T
+X = covariates[idx_new,:]
+normalized_X = X
+for i in range(X.shape[1]):
+    normalized_X[:,i] = (X[:,i]-min(X[:,i]))/(max(X[:,i])-min(X[:,i]))
+
+X = normalized_X
+Y = z.reshape(-1)
+coord = s_obs
+
+data_PM25 = pd.read_csv("./data/Normalized_PM2.5_20190605.csv")
+data_PM25
+
+X = torch.from_numpy(data_PM25[['precipitation', 'temperature', 'air pressure', 'relative humidity', 'U-wind', 'V-wind']].to_numpy()).float()
+Y = torch.from_numpy(data_PM25[['PM 2.5']].to_numpy().reshape(-1)).float()
+coord = torch.from_numpy(data_PM25[['longitude', 'latitude']].to_numpy()).float()
+
+p = X.shape[1]
+
+n = X.shape[0]
 nn = 20
 batch_size = 50
 
-torch.manual_seed(2023 + rand)
-X, Y, coord, cov, corerr = geospaNN.Simulation(n, p, nn, funXY, theta, range=[0, 10])
-if False:
-    np.random.seed(2023+rand)
-    X, Y, I_B, F_diag, rank, coord, cov, corerr = Simulate(n, p, funXY, nn, theta.detach().numpy(), method=method, a=0,
-                                                                 b=10, sparse = Sparse)
-    corerr = torch.from_numpy(corerr)
-    coord = torch.from_numpy(coord)
-    id = range(int(n))
-    print(BRISC_estimation(corerr[id].detach().numpy(), None, coord[id,:].detach().numpy())[1])
-    theta_update(torch.tensor([1, 1.5, 0.01]), corerr[id], coord[id,:], neighbor_size = 20)
 data = geospaNN.make_graph(X, Y, coord, nn)
-data_train, data_val, data_test = geospaNN.split_data(X, Y, coord, neighbor_size=20,
-                                             test_proportion=0.2)
 
-mlp = torch.nn.Sequential(
+torch.manual_seed(2024)
+np.random.seed(0)
+data_train, data_val, data_test = geospaNN.split_data(X, Y, coord, neighbor_size = 20,
+                                                   test_proportion = 0.5)
+
+start_time = time.time()
+mlp_nn = torch.nn.Sequential(
     torch.nn.Linear(p, 50),
     torch.nn.ReLU(),
     torch.nn.Linear(50, 20),
     torch.nn.ReLU(),
-    torch.nn.Linear(20, 10),
-    torch.nn.ReLU(),
-    torch.nn.Linear(10, 1),
+    torch.nn.Linear(20, 1),
 )
-nn_model = geospaNN.nn_train(mlp, lr =  0.01, min_delta = 0.001)
+nn_model = geospaNN.nn_train(mlp_nn, lr =  0.01, min_delta = 0.001)
 training_log = nn_model.train(data_train, data_val, data_test)
-theta0 = geospaNN.theta_update(torch.tensor([1, 1.5, 0.01]), mlp(data_train.x).squeeze() - data_train.y, data_train.pos, neighbor_size = 20)
-mlp = torch.nn.Sequential(
-    torch.nn.Linear(p, 50),
+theta0 = geospaNN.theta_update(torch.tensor([1, 1.5, 0.01]), mlp_nn(data_train.x).squeeze() - data_train.y, data_train.pos, neighbor_size = 20)
+mlp_nngls = torch.nn.Sequential(
+    torch.nn.Linear(p, 100),
+    torch.nn.ReLU(),
+    torch.nn.Linear(100, 50),
     torch.nn.ReLU(),
     torch.nn.Linear(50, 20),
     torch.nn.ReLU(),
@@ -54,279 +112,46 @@ mlp = torch.nn.Sequential(
     torch.nn.ReLU(),
     torch.nn.Linear(10, 1),
 )
-model = geospaNN.nngls(p=p, neighbor_size=nn, coord_dimensions=2, mlp=mlp, theta=torch.tensor(theta0))
-nngls_model = nngls_train(model, lr =  0.01, min_delta = 0.001)
+model = geospaNN.nngls(p=p, neighbor_size=nn, coord_dimensions=2, mlp=mlp_nngls, theta=torch.tensor(theta0))
+nngls_model = geospaNN.nngls_train(model, lr =  0.01, min_delta = 0.001)
+np.random.seed(2024)
 training_log = nngls_model.train(data_train, data_val, data_test,
-                                 Update_init = 100, Update_step = 10)
-theta_hat = theta_update(torch.tensor(theta0),
-                         model.estimate(data_train.x).squeeze() - data_train.y,
-                         data_train.pos, neighbor_size = nn)
+                                 Update_init = 20, Update_step = 10, seed = 2024)
+end_time = time.time()
 
-training_log = {'val_loss': [], 'pred_loss': [], 'sigma': [], 'phi': [], 'tau': []}
+if batch_size is None:
+    batch_size = int(data_train.x.shape[0] / 10)
+torch.manual_seed(2024)
+train_loader = geospaNN.split_loader(data_train, batch_size)
+training_log = {'val_loss': [], 'est_loss': [], 'sigma': [], 'phi': [], 'tau': []}
+for epoch in range(100):
+    # Train for one epoch
+    w = data_train.y - nngls_model.model.estimate(data_train.x)
+    nngls_model.model.train()
+    nngls_model.model.theta.requires_grad = False
+    if (epoch >= 20) & (epoch % 10 == 0):
+        nngls_model.theta_update(w, data_train)
 
-if False:
-    theta0 = torch.tensor([sigma, phi / np.sqrt(2), tau])
-    neighbor_size = nn
-    theta = theta0.detach().numpy()
-    residual = data_train.y - mlp(data_train.x).squeeze()
-    coord = data_train.pos
-    residual = residual.detach().numpy() + 0.1
-    coord = coord.detach().numpy()
-    n_train = residual.shape[0]
-    dist = distance_np(coord, coord)
-    rank = make_rank(coord, neighbor_size)
-    print('Theta updated from')
-    print(theta)
-    def likelihood(theta):
-        sigma, phi, tau = theta
-        cov = sigma * (np.exp(-phi * dist)) + tau * np.eye(n_train)  # need dist, n
-
-        term1 = 0
-        term2 = 0
-        for i in range(n_train):
-            ind = rank[i, :][rank[i, :] <= i]
-            id = np.append(ind, i)
-
-            sub_cov = cov[ind, :][:, ind]
-            if np.linalg.det(sub_cov):
-                bi = np.linalg.solve(cov[ind, :][:, ind], cov[ind, i])
-            else:
-                bi = np.zeros(ind.shape)
-            I_Bi = np.append(-bi, 1)
-            Fi = cov[i, i] - np.inner(cov[ind, i], bi)
-            decor_res = np.sqrt(np.reciprocal(Fi)) * np.dot(I_Bi, residual[id])
-            term1 += np.log(Fi)
-            term2 += decor_res ** 2
-        return (term1 + term2)
-
-    i = 0
-    def likelihood_k(theta):
-        sigma, phi, tau = theta
-        cov = sigma * (np.exp(-phi * dist)) + tau * np.eye(n_train)  # need dist, n
-
-        term1 = 0
-        term2 = 0
-
-        ind = rank[i, :][rank[i, :] <= i]
-        id = np.append(ind, i)
-
-        sub_cov = cov[ind, :][:, ind]
-        if np.linalg.det(sub_cov):
-            bi = np.linalg.solve(cov[ind, :][:, ind], cov[ind, i])
-        else:
-            bi = np.zeros(ind.shape)
-        I_Bi = np.append(-bi, 1)
-        Fi = cov[i, i] - np.inner(cov[ind, i], bi)
-        decor_res = np.sqrt(np.reciprocal(Fi)) * np.dot(I_Bi, residual[id])
-        term1 += np.log(Fi)
-        term2 += decor_res ** 2
-        return (term1 + term2)
-
-    h = 0.000000001
-    (likelihood_k([theta[0] + h, theta[1], theta[2]]) - likelihood_k([theta[0], theta[1], theta[2]]))/h
-    (likelihood_k([theta[0], theta[1], theta[2] + h]) - likelihood_k([theta[0], theta[1], theta[2]])) / h
-    def grad(theta):
-        sigma, phi, tau = theta
-        n = dist.shape[0]
-        cov = sigma * (np.exp(-phi * dist) + tau * np.eye(n_train))
-        cov_deriv = np.stack([np.exp(-phi * dist),
-                                    -dist*sigma*np.exp(-phi * dist),
-                                    np.eye(n)], axis = 0)
-        deriv = 0
-        for i in range(n_train):
-            ind = rank[i, :][rank[i, :] <= i]
-            id = np.append(ind, i)
-
-            if len(ind) > 0:
-                bi = np.linalg.solve(cov[ind, :][:, ind], cov[ind, i])
-                ci_deriv = cov_deriv[:, ind, i].reshape((-1, len(ind)))
-                Ci_deriv = cov_deriv[:, :, ind][:, ind, :]
-                F_deriv = cov_deriv[:, 0, 0] - 2 * np.dot(ci_deriv, bi) - np.dot(np.dot(Ci_deriv, bi), bi)
-                res_temp = residual[ind]
-            else:
-                bi = np.zeros(ind.shape)
-                ci_deriv = np.zeros(len(theta))
-                F_deriv = cov_deriv[:, 0, 0]
-                res_temp = 0
-            I_Bi = np.append(-bi, 1)
-            Fi = cov[i, i] - np.inner(cov[ind, i], bi)
-            residual_decor = np.dot(I_Bi, residual[id])
-            decor_res = np.sqrt(np.reciprocal(Fi)) * residual_decor
-            deriv_temp = F_deriv/Fi - decor_res*np.sqrt(np.reciprocal(Fi))*(
-                    F_deriv * residual_decor / Fi +
-                    np.dot(ci_deriv,  res_temp)
-            )
-            deriv += deriv_temp
-        return deriv
-
-    def constraint1(x):
-        return x[0]
-    def constraint2(x):
-        return x[1]
-    def constraint3(x):
-        return x[2]
-
-    cons = [{'type': 'ineq', 'fun': constraint1},
-            {'type': 'ineq', 'fun': constraint3}]
-
-'''
-jac{callable, ‘2-point’, ‘3-point’, ‘cs’, bool}, optional
-Method for computing the gradient vector. 
-Only for CG, BFGS, Newton-CG, L-BFGS-B, TNC, SLSQP, dogleg, trust-ncg, trust-krylov, trust-exact and trust-constr. 
-
-boundssequence or Bounds, optional
-Bounds on variables for Nelder-Mead, L-BFGS-B, TNC, SLSQP, Powell, trust-constr, and COBYLA methods. 
-'''
-
-    start_time = time.time()
-    res = scipy.optimize.minimize(likelihood, theta, method = 'BFGS',
-                                  constraints=cons)
-    print(res.x)
-    print(time.time() - start_time)
-    start_time = time.time()
-    res = scipy.optimize.minimize(likelihood, theta, method = 'L-BFGS-B',
-                                  bounds = [(0, None), (0, None), (0, None)])
-    print(res.x)
-    print(time.time() - start_time)
-
-BRISC_estimation(residual, None, coord)
-
-### Running time
-if False:
-    t = np.empty(0)
-    size_vec = np.empty(0)
-    epoch_vec = np.empty(0)
-
-    for n in [100, 200, 500, 1000, 2000, 5000, 10000, 20000, 50000, 100000]:
-        for rand in range(1, 5 + 1):
-            nn = 20
-            batch_size = 50
-
-            torch.manual_seed(2023 + rand)
-            X, Y, coord, cov, corerr = Simulation(n, p, nn, funXY, theta, range = [0,1])
-            data = make_graph(X, Y, coord, nn)
-            data_train, data_val, data_test = split_data(X, Y, coord, neighbor_size = 20,
-                                                             test_proportion = 0.2)
-            train_loader = split_loader(data_train, batch_size)
-
-            start_time = time.time()
-            mlp = torch.nn.Sequential(
-                        torch.nn.Linear(p, 5),
-                        torch.nn.ReLU(),
-                        torch.nn.Linear(5, 1)
-                    )
-            model = nngls(p=p, neighbor_size=nn, coord_dimensions=2, mlp = mlp, theta = torch.tensor([1.5, 5, 0.1]))
-            optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
-            Update_init = 0; Update_step = 1; Update_bound = 0.1; patience_half = 5; patience = 10;
-            lr_scheduler = LRScheduler(optimizer, patience = patience_half, factor=0.5)
-            early_stopping = EarlyStopping(patience=patience, min_delta = 0.001)
-
-            training_log = {'val_loss': [], 'pred_loss': [], 'sigma': [], 'phi': [], 'tau': []}
-
-            # Training/evaluation loop
-            for epoch in range(100):
-                print(epoch)
-                # Train for one epoch
-                model.train()
-                if (epoch >= Update_init) & (epoch % Update_step == 0):
-                    model.theta.requires_grad = True
-                else:
-                    model.theta.requires_grad = False
-                for batch_idx, batch in enumerate(train_loader):
-                    optimizer.zero_grad()
-                    decorrelated_preds, decorrelated_targets, est = model(batch)
-                    loss = torch.nn.functional.mse_loss(decorrelated_preds[:batch_size], decorrelated_targets[:batch_size])
-                    metric = torch.nn.functional.mse_loss(est[:batch_size], batch.y[:batch_size])
-                    loss.backward()
-                    optimizer.step()
-                # Compute predictions on held-out test test
-                model.eval()
-                _, _, val_est = model(data_val)
-                val_loss = torch.nn.functional.mse_loss(val_est, data_val.y).item()
-                lr_scheduler(val_loss)
-                early_stopping(val_loss)
-                if early_stopping.early_stop:
-                    print('End at epoch' + str(epoch))
-                    break
-                _, _, pred_test = model(data_test)
-                pred_loss = torch.nn.functional.mse_loss(pred_test, data_test.y).item()
-                training_log["val_loss"].append(val_loss)
-                training_log["pred_loss"].append(pred_loss)
-                training_log["sigma"].append(model.theta[0].item())
-                training_log["phi"].append(model.theta[1].item())
-                training_log["tau"].append(model.theta[2].item())
-            end_time = time.time()
-            usertime = end_time - start_time
-            t = np.append(t, usertime)
-            size_vec = np.append(size_vec, n)
-            epoch_vec = np.append(epoch_vec, epoch)
-
-            df = pd.DataFrame({'time': t,
-                       'epoch': epoch_vec,
-                       'size': size_vec
-                       })
-
-            df.to_csv("/Users/zhanwentao/Documents/Abhi/NN/NN-GLS/running_time.csv")
-
-if False:
-    sampled_data = next(iter(train_loader))
-    temp = [(idx, letter) for idx, letter in enumerate(train_loader)]
-
-    batch = temp[1][1]
-
-    mlp = torch.nn.Sequential(
-        torch.nn.Linear(5, 5),
-        torch.nn.ReLU(),
-        torch.nn.Linear(5, 1),
-    )
-    batch.o = mlp(batch.x)
-    batch.size = batch_size
-    edge_list = list()
-    for i in range(batch.x.shape[0]):
-        edge_list.append(batch.edge_attr[torch.where(batch.edge_index[1, :] == i)].squeeze())
-    batch.edge_list = edge_list
-
-    gather_neighbor_positions = GatherNeighborPositionsConv(20, 2)
-    neighbor_positions = gather_neighbor_positions(
-        batch.pos, batch.edge_index, batch.edge_attr, batch.batch_size
-    )
-
-    gather_neighbor_outputs1 = GatherNeighborInfoConv1(20)
-    gather_neighbor_outputs = GatherNeighborInfoConv(20)
-    neighbor_outputs = gather_neighbor_outputs(
-        batch.o.double(), batch.edge_index, batch.edge_attr, batch.batch_size
-    )
-
-    compute_covariance_vectors = CovarianceVectorConv(nn, theta)
-
-    compute_inverse_cov_matrices = InverseCovMatrixFromPositions(nn, 2, theta)
-    Inv_Cov_Ni_Ni = compute_inverse_cov_matrices(neighbor_positions, batch.edge_list)
-    Cov_i_Ni = compute_covariance_vectors(
-        batch.pos, batch.edge_index, batch.edge_attr, batch.batch_size
-    )
-
-    B_i = torch.matmul(Inv_Cov_Ni_Ni, Cov_i_Ni.unsqueeze(2)).squeeze()
-    Fi = theta[0] + theta[2] - torch.sum(B_i * Cov_i_Ni, dim=1)
-    y_neighbor = gather_neighbor_outputs(
-        batch.y, batch.edge_index, batch.edge_attr , batch.batch_size
-    )
-    y_decor = (batch.y - torch.sum(y_neighbor * B_i, dim=1)) / torch.sqrt(Fi)
-
-    if False:
-        ones = torch.ones(B_i.size(0), 1)
-        negative_extended_b_vectors = torch.cat((ones, -B_i), dim=1)
-        v_vectors = negative_extended_b_vectors / torch.sqrt(Fi.unsqueeze(1))
-        neighbor_outputs = gather_neighbor_outputs1(batch.y, batch.edge_index, batch.edge_attr)
-        decorrelated_pres_1 = (v_vectors * neighbor_outputs).sum(dim=1)
-
-def predict(self, data_train, data_test, CI = False, **kwargs):
-    with torch.no_grad():
-        w_train = data_train.y - self.estimate(data_train.x)
-        if CI:
-            w_test, w_u, w_l = pyNNGLS.krig_pred(w_train, data_train.pos, data_test.pos, self.theta, **kwargs)
-            estimation_test = self.estimate(data_test.x)
-            return [estimation_test + w_test, estimation_test + w_u, estimation_test + w_l]
-        else:
-            w_test, _, _ = pyNNGLS.krig_pred(w_train, data_train.pos, data_test.pos, self.theta, **kwargs)
-            estimation_test = self.estimate(data_test.x)
-            return estimation_test + w_test
+    for batch_idx, batch in enumerate(train_loader):
+        nngls_model.optimizer.zero_grad()
+        decorrelated_preds, decorrelated_targets, est = nngls_model.model(batch)
+        loss = torch.nn.functional.mse_loss(decorrelated_preds[:batch_size], decorrelated_targets[:batch_size])
+        loss.backward()
+        nngls_model.optimizer.step()
+    # Compute estimations on held-out test set
+    nngls_model.model.eval()
+    _, _, val_est = nngls_model.model(data_val)
+    val_loss = torch.nn.functional.mse_loss(val_est, data_val.y).item()
+    nngls_model.lr_scheduler(val_loss)
+    nngls_model.early_stopping(val_loss)
+    if nngls_model.early_stopping.early_stop:
+        print('End at epoch' + str(epoch))
+        break
+    training_log["val_loss"].append(val_loss)
+    training_log["sigma"].append(nngls_model.model.theta[0].item())
+    training_log["phi"].append(nngls_model.model.theta[1].item())
+    training_log["tau"].append(nngls_model.model.theta[2].item())
+    if data_test is None:
+        _, _, test_est = nngls_model.model(data_test)
+        est_loss = torch.nn.functional.mse_loss(test_est, data_test.y).item()
+        training_log["est_loss"].append(est_loss)
