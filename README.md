@@ -48,6 +48,10 @@ Nearest Neighbor Gaussian Process (NNGP) (Datta et al., 2016) which makes it sui
 </a>
 </div>
 
+## Temporary notes (Updated on June 18th 2024)
+1. The installation of the package relies on PyTorch and PyG libraries, which for now have to be installed manually.
+2. The PyPi version will report error in a marginal case where batch size equal to $0$, it has been fixed in the latest github version. 
+
 ## Installation
 (Currently) to install the development version of the package, a pre-installed PyTorch and PyG libraries are needed. Installation in the following order is recommended to avoid any compilation issue.
 1. To install PyTorch, find and install the binary suitable for your machine [here](https://pytorch.org/).
