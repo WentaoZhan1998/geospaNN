@@ -11,64 +11,8 @@ from shapely.geometry import Point
 from scipy import spatial, interpolate
 import warnings
 warnings.filterwarnings("ignore")
-
-url = "https://www2.census.gov/geo/tiger/GENZ2018/shp/cb_2018_us_nation_20m.zip"
-us = gpd.read_file(url).explode()
-us = us.loc[us.geometry.apply(lambda x: x.exterior.bounds[2])<-60]
-
-df_covariates = pd.read_csv('./data/covariate0605.csv')
-df_pm25 = pd.read_csv('./data/pm25_0605.csv')
-df_pm25 = df_pm25.loc[df_pm25.Latitude < 50]
-
-x_min,y_min,x_max,y_max = np.array([np.min(df_covariates['long']), np.min(df_covariates['lat']),
-    np.max(df_covariates['long']), np.max(df_covariates['lat'])])
-arr1 = np.mgrid[x_min:x_max:101j, y_min:y_max:101j]
-
-# extract the x and y coordinates as flat arrays
-arr1x = np.ravel(arr1[0])
-arr1y = np.ravel(arr1[1])
-# using the X and Y columns, build a dataframe, then the geodataframe
-df = pd.DataFrame({'X':arr1x, 'Y':arr1y})
-df['coords'] = list(zip(df['X'], df['Y']))
-df['coords'] = df['coords'].apply(Point)
-
-gdf = gpd.GeoDataFrame(df, geometry=gpd.points_from_xy(x=df.X, y=df.Y),crs = us.crs)
-inUS = gdf['geometry'].apply(lambda s: s.within(us.geometry.unary_union))
-
-lonlat_pm25=df_pm25.values[:,[1,2]]
-near = df_covariates.values[:,[1,2]]
-tree = spatial.KDTree(list(zip(near[:,0].ravel(), near[:,1].ravel())))
-idx = tree.query(lonlat_pm25)[1]
-df_pm25_mean = df_pm25.assign(neighbor = idx).groupby('neighbor')['PM25'].mean()
-idx_new = df_pm25_mean.index.values
-pm25 = df_pm25_mean.values
-z = pm25[:,None]
-
-lon = df_covariates.values[:,1]
-lat = df_covariates.values[:,2]
-
-f = interpolate.Rbf(lon[idx_new], lat[idx_new], z, function = 'inverse')
-x_test = gdf.loc[inUS,:].X
-y_test = gdf.loc[inUS,:].Y
-z_test = f(x_test, y_test)
-
-lon = df_covariates.values[:,1]
-lat = df_covariates.values[:,2]
-covariates = df_covariates.values[:,3:]
-normalized_lon = (lon-min(lon))/(max(lon)-min(lon))
-normalized_lat = (lat-min(lat))/(max(lat)-min(lat))
-normalized_x_test = (x_test-min(lon))/(max(lon)-min(lon))
-normalized_y_test = (y_test-min(lat))/(max(lat)-min(lat))
-
-s_obs = np.vstack((normalized_lon[idx_new],normalized_lat[idx_new])).T
-X = covariates[idx_new,:]
-normalized_X = X
-for i in range(X.shape[1]):
-    normalized_X[:,i] = (X[:,i]-min(X[:,i]))/(max(X[:,i])-min(X[:,i]))
-
-X = normalized_X
-Y = z.reshape(-1)
-coord = s_obs
+import os
+os.chdir("/Users/zhanwentao/Documents/Abhi/NN/NN-GLS")
 
 data_PM25 = pd.read_csv("./data/Normalized_PM2.5_20190605.csv")
 data_PM25

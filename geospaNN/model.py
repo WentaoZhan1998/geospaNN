@@ -36,11 +36,10 @@ class NeighborCovVec(MessagePassing):
     def message(self, pos_i, pos_j, edge_attr):
         num_edges = edge_attr.shape[0]
         msg = torch.zeros(num_edges, self.neighbor_size)
-        col_idc = edge_attr.flatten()
-        row_idc = torch.tensor(range(num_edges))
+        col_idc = edge_attr.flatten().int()
+        row_idc = torch.tensor(range(num_edges)).int()
         msg[row_idc, col_idc] = make_cov_full(distance(pos_i - pos_j, torch.zeros(1, 2)), self.theta).squeeze()
         return msg
-
 
 class InverseCovMat(torch.nn.Module):
     """
@@ -122,7 +121,7 @@ class NeighborPositions(MessagePassing):
         num_edges = edge_attr.shape[0]
         msg = torch.zeros(num_edges, self.neighbor_size * self.coord_dimensions)
         col_idc = edge_attr.flatten() * self.coord_dimensions
-        row_idc = torch.tensor(range(num_edges))
+        row_idc = torch.tensor(range(num_edges)).int()
         msg[
             row_idc.unsqueeze(1), col_idc.unsqueeze(1) + torch.tensor(range(self.coord_dimensions))
         ] = pos_j
@@ -158,8 +157,8 @@ class NeighborInfo(MessagePassing):
     def message(self, y_j, edge_attr):
         num_edges = edge_attr.shape[0]
         msg = torch.zeros(num_edges, self.neighbor_size).double()
-        col_idc = edge_attr.flatten()
-        row_idc = torch.tensor(range(num_edges))
+        col_idc = edge_attr.flatten().int()
+        row_idc = torch.tensor(range(num_edges)).int()
         msg[row_idc, col_idc] = y_j.squeeze().double()
         return msg
 
@@ -293,7 +292,7 @@ class nngls(torch.nn.Module):
 
         y_neighbor = self.gather_neighbor_outputs(batch.y, batch.edge_index, batch.edge_attr, batch.batch_size)
         y_decor = (batch.y[range(batch.batch_size)] - torch.sum(y_neighbor * B_i, dim=1)) / torch.sqrt(F_i)
-        o = self.mlp(batch.x).squeeze()
+        o = self.mlp(batch.x).squeeze().reshape(-1)
         o_neighbor = self.gather_neighbor_outputs(o, batch.edge_index, batch.edge_attr, batch.batch_size)
         o_decor = (o[range(batch.batch_size)] - torch.sum(o_neighbor * B_i, dim=1)) / torch.sqrt(F_i)
 
