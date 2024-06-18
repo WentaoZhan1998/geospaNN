@@ -6,7 +6,7 @@
 
 ```python
 import torch
-import pyNNGLS
+import geospaNN
 import numpy as np
 import time
 import pandas as pd
@@ -46,13 +46,13 @@ nn = 20
 batch_size = 50
 
 torch.manual_seed(2024)
-X, Y, coord, cov, corerr = pyNNGLS.Simulation(n, p, nn, funXY, theta, range=[0, 10])
+X, Y, coord, cov, corerr = geospaNN.Simulation(n, p, nn, funXY, theta, range=[0, 10])
 
-data = pyNNGLS.make_graph(X, Y, coord, nn)
+data = geospaNN.make_graph(X, Y, coord, nn)
 
 torch.manual_seed(2024)
 np.random.seed(0)
-data_train, data_val, data_test = pyNNGLS.split_data(X, Y, coord, neighbor_size = nn, 
+data_train, data_val, data_test = geospaNN.split_data(X, Y, coord, neighbor_size = nn, 
                                                    test_proportion = 0.2)
 
 ```
@@ -66,13 +66,15 @@ mlp_nn = torch.nn.Sequential(
     torch.nn.Flatten(), 
     DropoutLayer(0.9),
     torch.nn.ReLU(),
+    torch.nn.Linear(100, 50),
+    torch.nn.ReLU(),
     torch.nn.Linear(50, 20),
     torch.nn.ReLU(),
     torch.nn.Linear(20, 1),
 )
-nn_model = pyNNGLS.nn_train(mlp_nn, lr =  0.01, min_delta = 0.001)
+nn_model = geospaNN.nn_train(mlp_nn, lr =  0.01, min_delta = 0.001)
 training_log = nn_model.train(data_train, data_val, data_test)
-theta0 = pyNNGLS.theta_update(torch.tensor([1, 1.5, 0.01]), mlp_nn(data_train.x).squeeze() - data_train.y, data_train.pos, neighbor_size = 20)
+theta0 = geospaNN.theta_update(torch.tensor([1, 1.5, 0.01]), mlp_nn(data_train.x).squeeze() - data_train.y, data_train.pos, neighbor_size = 20)
 mlp_nngls = torch.nn.Sequential(
     torch.nn.Linear(p, 100),
     torch.nn.Flatten(), 
@@ -86,34 +88,43 @@ mlp_nngls = torch.nn.Sequential(
     torch.nn.ReLU(),
     torch.nn.Linear(10, 1),
 )
-model = pyNNGLS.nngls(p=p, neighbor_size=nn, coord_dimensions=2, mlp=mlp_nngls, theta=torch.tensor(theta0))
-nngls_model = pyNNGLS.nngls_train(model, lr =  0.01, min_delta = 0.001)
+model = geospaNN.nngls(p=p, neighbor_size=nn, coord_dimensions=2, mlp=mlp_nngls, theta=torch.tensor(theta0))
+nngls_model = geospaNN.nngls_train(model, lr =  0.01, min_delta = 0.001)
 training_log = nngls_model.train(data_train, data_val, data_test,
                                  Update_init = 10, Update_step = 5)
 end_time = time.time()
 ```
 
-    Epoch 00055: reducing learning rate of group 0 to 5.0000e-03.
+    Epoch 00053: reducing learning rate of group 0 to 5.0000e-03.
     INFO: Early stopping
-    End at epoch58
+    End at epoch56
     Theta updated from
     [1.   1.5  0.01]
     Theta updated from
-    [1.19052133 1.80064973 0.27464279]
+    [1.23325332 1.91505429 0.16597437]
     to
-    [1.30750346 1.57701794 0.1618039 ]
-    Epoch 00011: reducing learning rate of group 0 to 5.0000e-03.
+    [1.24555493 1.88866008 0.02749452]
     Theta updated from
-    [1.30750346 1.57701794 0.1618039 ]
+    [1.24555493 1.88866008 0.02749452]
     to
-    [1.2161958  1.7977146  0.02990608]
+    [2.39995167 0.72656793 0.04760227]
+    Epoch 00016: reducing learning rate of group 0 to 5.0000e-03.
     Theta updated from
-    [1.2161958  1.7977146  0.02990608]
+    [2.39995167 0.72656793 0.04760227]
     to
-    [1.48310681 1.40584031 0.16316865]
-    Epoch 00021: reducing learning rate of group 0 to 2.5000e-03.
+    [1.33750198 1.46555775 0.05409349]
+    Epoch 00023: reducing learning rate of group 0 to 2.5000e-03.
+    Theta updated from
+    [1.33750198 1.46555775 0.05409349]
+    to
+    [1.23864962 2.01261422 0.        ]
+    Epoch 00030: reducing learning rate of group 0 to 1.2500e-03.
+    Theta updated from
+    [1.23864962 2.01261422 0.        ]
+    to
+    [1.2539044  1.80523262 0.01950352]
     INFO: Early stopping
-    End at epoch24
+    End at epoch33
 
 
 
@@ -124,7 +135,7 @@ benchmark_mse = torch.nn.functional.mse_loss(benchmark_preds, data_test.y)
 print(f'Benchmark MSE: {benchmark_mse:.3f}')
 ```
 
-    Benchmark MSE: 11.020
+    Benchmark MSE: 10.976
 
 
 
@@ -132,7 +143,7 @@ print(f'Benchmark MSE: {benchmark_mse:.3f}')
 print(f"\rRunning time: {end_time - start_time} seconds")
 ```
 
-    Running time: 16.799349069595337 seconds
+    Running time: 20.763789176940918 seconds
 
 
 
@@ -148,7 +159,7 @@ plt.show()
 
 
     
-![png](./data/output_figures/output_7_0.png)
+![png](./data/output_figures/sim_1.png)
     
 
 
@@ -175,7 +186,7 @@ plt.tight_layout()
 
 
     
-![png](./data/output_figures/output_8_0.png)
+![png](./data/output_figures/sim_2.png)
     
 
 
@@ -183,11 +194,11 @@ plt.tight_layout()
 ```python
 epoch = len(training_log["val_loss"])
 training_log["epoch"] = list(range(1, epoch + 1))
-training_log["pred_loss"] = None
+training_log["est_loss"] = None
 training_log = pd.DataFrame(training_log)
 
 # Melting the dataframe to make it suitable for seaborn plotting
-training_log_melted = training_log[["epoch", "val_loss", "pred_loss"]].melt(id_vars='epoch', var_name='Variable', value_name='Value')
+training_log_melted = training_log[["epoch", "val_loss"]].melt(id_vars='epoch', var_name='Variable', value_name='Value')
 
 # Finding the color used for the 'metric' in the plot
 palette = sns.color_palette()
@@ -226,7 +237,7 @@ plt.tight_layout()
 
 
     
-![png](./data/output_figures/output_9_0.png)
+![png](./data/output_figures/sim_3.png)
     
 
 
@@ -262,6 +273,6 @@ axes[1].grid(True)
 
 
     
-![png](./data/output_figures/output_10_0.png)
+![png](./data/output_figures/sim_4.png)
     
 

@@ -86,7 +86,7 @@ plt.show()
 
 
     
-![png](./data/output_figures/sim_1.png)
+![png](./data/output_figures/real_1.png)
     
 
 
@@ -401,7 +401,7 @@ plt.show()
 
 
     
-![png](./data/output_figures/sim_2.png)
+![png](./data/output_figures/real_2.png)
     
 
 
@@ -440,6 +440,6 @@ plt.show()
 
 
     
-![png](./data/output_figures/sim_3.png)
+![png](./data/output_figures/real_3.png)
     
 
