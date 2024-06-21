@@ -59,6 +59,7 @@ Nearest Neighbor Gaussian Process (NNGP) (Datta et al., 2016) which makes it sui
 3. Make sure to also install the dependencies including *pyg_lib*, *torch_scatter*, *torch_sparse*, *torch_cluster*, and *torch_spline_conv*.
 
 ```commandline\
+pip install numpy==1.26 --no-cache-dir
 pip install torch==2.0.0 --no-cache-dir
 pip install torch-scatter -f https://data.pyg.org/whl/torch-2.0.0.html --no-cache-dir
 pip install torch-sparse -f https://data.pyg.org/whl/torch-2.0.0.html --no-cache-dir
@@ -161,6 +162,8 @@ test_predict = model.predict(data_train, data_test)
 ```
 
 ## Running examples:
+* Python packages time, pandas, seaborn, geopandas, and matplotlib are required to run the following experiments.
+
 * A simulation experiment with a common spatial setting is shown [here](https://github.com/WentaoZhan1998/geospaNN/blob/main/Example_simulation.md).
 
 * For the linear regression case, a performance comparison with the R package [BRISC](https://github.com/ArkajyotiSaha/BRISC) is shown [here](https://github.com/WentaoZhan1998/geospaNN/blob/main/Example_linear.md).

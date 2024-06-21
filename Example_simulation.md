@@ -62,7 +62,7 @@ data_train, data_val, data_test = geospaNN.split_data(X, Y, coord, neighbor_size
 torch.manual_seed(2024)
 start_time = time.time()
 mlp_nn = torch.nn.Sequential(
-    torch.nn.Linear(p, 50),
+    torch.nn.Linear(p, 100),
     torch.nn.Flatten(), 
     DropoutLayer(0.9),
     torch.nn.ReLU(),
