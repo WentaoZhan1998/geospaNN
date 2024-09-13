@@ -3,7 +3,6 @@
 %autoreload 2
 ```
 
-
 ```python
 import torch
 import geospaNN

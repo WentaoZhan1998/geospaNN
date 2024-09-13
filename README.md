@@ -48,15 +48,29 @@ Nearest Neighbor Gaussian Process (NNGP) (Datta et al., 2016) which makes it sui
 </a>
 </div>
 
-## Temporary notes (Updated on June 18th 2024)
+## Temporary notes (Updated on Sep 12th 2024)
 1. The installation of the package relies on PyTorch and PyG libraries, which for now have to be installed manually.
 
 ## Installation
+### Creat and enter virtual environment (recommended)
+1. If you haven't installed anaconda on your machine, refer to this [doc](https://docs.anaconda.com/anaconda/install/), follow the instruction, 
+and install the right version.
+2. Create the conda virtual environment. Refer to this [doc](https://conda.io/projects/conda/en/latest/user-guide/tasks/manage-environments.html). Example:
+```commandline\ 
+conda create -n [name of your environment] python=3.10
+```
+3. Enter the virtual environment by running:
+```commandline\ 
+conda activate [name of your environment]
+```
+
+### Manual dependency installation
 (Currently) to install the development version of the package, a pre-installed PyTorch and PyG libraries are needed. Installation in the following order is recommended to avoid any compilation issue.
 1. To install PyTorch, find and install the binary suitable for your machine [here](https://pytorch.org/).
 2. Then to install the PyG library, find and install the proper binary [here](https://pytorch-geometric.readthedocs.io/en/latest/notes/installation.html).
 3. Make sure to also install the dependencies including *pyg_lib*, *torch_scatter*, *torch_sparse*, *torch_cluster*, and *torch_spline_conv*.
 
+The following chunk has been tested in a python 3.10 environment.
 ```commandline\
 pip install numpy==1.26 --no-cache-dir
 pip install torch==2.0.0 --no-cache-dir
@@ -66,19 +80,24 @@ pip install torch-cluster -f https://data.pyg.org/whl/torch-2.0.0.html --no-cach
 pip install torch_geometric --no-cache-dir
 ```
 
-Once PyTorch and PyG are successfully installed, use the following command in the terminal for the latest version:
+### Main installation
+Once PyTorch and PyG are successfully installed, use the following command in the terminal for the latest version (version 06/2024):
 ```commandline\
 pip install https://github.com/WentaoZhan1998/geospaNN/archive/main.zip
 ```
 
-To install the pypi version, use the following command in the terminal:
+To install the pypi version, use the following command in the terminal (version 06/2024):
 ```commandline\
 pip install geospaNN
 ```
 
 ## An easy running sample:
 
-First import the modules and set up the parameters
+First, run python in the terminal:
+```commandline\
+python
+```
+import the modules and set up the parameters
 1. Define the Friedman's function, and specify the dimension of input covariates.
 2. Set the parameters for the spatial process.
 3. Set the hyperparameters of the data.
@@ -174,11 +193,10 @@ test_predict = model.predict(data_train, data_test)
 ## Citation
 Please cite the following paper when you use **geospaNN**:
 
-> Zhan, Wentao, and Abhirup Datta. "Neural networks for geospatial data." Journal of the American Statistical Association just-accepted (2024): 1-21.
- 
-
+> Zhan, Wentao, and Abhirup Datta. 2024. “Neural Networks for Geospatial Data.” Journal of the American Statistical Association, June, 1–21. doi:10.1080/01621459.2024.2356293.
+> 
 ## References
 
-Datta, Abhirup, Sudipto Banerjee, Andrew O. Finley, and Alan E. Gelfand. "Hierarchical nearest-neighbor Gaussian process models for large geostatistical datasets." Journal of the American Statistical Association 111, no. 514 (2016): 800-812. [link](https://www.tandfonline.com/doi/full/10.1080/01621459.2015.1044091)
+Datta, Abhirup, Sudipto Banerjee, Andrew O. Finley, and Alan E. Gelfand. 2016. “Hierarchical Nearest-Neighbor Gaussian Process Models for Large Geostatistical Datasets.” Journal of the American Statistical Association 111 (514): 800–812. doi:10.1080/01621459.2015.1044091.
 
-Zhan, Wentao, and Abhirup Datta. "Neural networks for geospatial data." Journal of the American Statistical Association just-accepted (2024): 1-21.
+Zhan, Wentao, and Abhirup Datta. 2024. “Neural Networks for Geospatial Data.” Journal of the American Statistical Association, June, 1–21. doi:10.1080/01621459.2024.2356293.
