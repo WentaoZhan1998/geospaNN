@@ -66,10 +66,6 @@ conda activate [name of your environment]
 
 ### Manual dependency installation
 (Currently) to install the development version of the package, a pre-installed PyTorch and PyG libraries are needed. Installation in the following order is recommended to avoid any compilation issue.
-1. To install PyTorch, find and install the binary suitable for your machine [here](https://pytorch.org/).
-2. Then to install the PyG library, find and install the proper binary [here](https://pytorch-geometric.readthedocs.io/en/latest/notes/installation.html).
-3. Make sure to also install the dependencies including *pyg_lib*, *torch_scatter*, *torch_sparse*, *torch_cluster*, and *torch_spline_conv*.
-
 The following chunk has been tested in a python 3.10 environment.
 ```commandline\
 pip install numpy==1.26 --no-cache-dir
@@ -79,6 +75,12 @@ pip install torch-sparse -f https://data.pyg.org/whl/torch-2.0.0.html --no-cache
 pip install torch-cluster -f https://data.pyg.org/whl/torch-2.0.0.html --no-cache-dir
 pip install torch_geometric --no-cache-dir
 ```
+<!---
+1. To install PyTorch, find and install the binary suitable for your machine [here](https://pytorch.org/).
+2. Then to install the PyG library, find and install the proper binary [here](https://pytorch-geometric.readthedocs.io/en/latest/notes/installation.html).
+3. Make sure to also install the dependencies including *pyg_lib*, *torch_scatter*, *torch_sparse*, *torch_cluster*, and *torch_spline_conv*.
+-->
+
 
 ### Main installation
 Once PyTorch and PyG are successfully installed, use the following command in the terminal for the latest version (version 06/2024):
