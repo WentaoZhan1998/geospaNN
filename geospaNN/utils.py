@@ -442,7 +442,7 @@ def make_bf_from_cov(cov: torch.Tensor,
     cov
         The nxn covariance matrix.
     neighbor_size
-        The number of nearest neighbors used used for NNGP approximation.
+        The number of nearest neighbors used for NNGP approximation.
 
     Returns
     -------

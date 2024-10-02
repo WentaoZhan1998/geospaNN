@@ -48,6 +48,7 @@ batch_size = 50
 torch.manual_seed(2024)
 X, Y, coord, cov, corerr = geospaNN.Simulation(n, p, nn, funXY, theta, range=[0, 10])
 
+X, Y, coord = geospaNN.spatial_order(X, Y, coord, method = 'max-min')
 data = geospaNN.make_graph(X, Y, coord, nn)
 
 torch.manual_seed(2024)
