@@ -12,6 +12,8 @@ that combines multi-layer perceptrons, Gaussian processes, and generalized least
 NN-GLS offers both regression function estimation and spatial prediction, and can scale up to sample sizes of hundreds of thousands. 
 Users are welcome to provide any helpful suggestions and comments.
 
+Acknowledgement: This work was partially supported by the National Institute of Environmental Health Sciences (NIEHS) under grant R01 ES033739.
+
 ## Overview
 The Python package **geospaNN** stands for 'geospatial Neural Networks', where we implement NN-GLS, 
 neural networks tailored for analysis of geospatial data that explicitly accounts for spatial dependence (Zhan et.al, 2023). 
@@ -57,10 +59,12 @@ Nearest Neighbor Gaussian Process (NNGP) (Datta et al., 2016) which makes it sui
 and install the right version.
 2. Create the conda virtual environment. Refer to this [doc](https://conda.io/projects/conda/en/latest/user-guide/tasks/manage-environments.html). Example:
 ```commandline\ 
+# bash
 conda create -n [name of your environment] python=3.10
 ```
 3. Enter the virtual environment by running:
 ```commandline\ 
+# bash
 conda activate [name of your environment]
 ```
 
@@ -68,6 +72,7 @@ conda activate [name of your environment]
 (Currently) to install the development version of the package, a pre-installed PyTorch and PyG libraries are needed. Installation in the following order is recommended to avoid any compilation issue.
 The following chunk has been tested in a python 3.10 environment.
 ```commandline\
+# bash
 pip install numpy==1.26 --no-cache-dir
 pip install torch==2.0.0 --no-cache-dir
 pip install torch-scatter -f https://data.pyg.org/whl/torch-2.0.0.html --no-cache-dir
@@ -108,7 +113,7 @@ import torch
 import geospaNN
 import numpy as np
 
-# 1.
+# 1. 
 def f5(X): return (10*np.sin(np.pi*X[:,0]*X[:,1]) + 20*(X[:,2]-0.5)**2 + 10*X[:,3] +5*X[:,4])/6
 
 p = 5; funXY = f5
@@ -127,17 +132,21 @@ batch_size = 50     # Batch size for training the neural networks.
 
 Next, simulate and split the data.
 1. Simulate the spatially correlated data with spatial coordinates randomly sampled on a [0, 10]^2 squared domain.
-2. Build the nearest neighbor graph, as a torch_geometric.data.Data object.
-3. Split data into training, validation, testing sets.
+2. Order the spatial locations by [max-min ordering](https://projecteuclid.org/journals/statistical-science/volume-36/issue-1/A-General-Framework-for-Vecchia-Approximations-of-Gaussian-Processes/10.1214/19-STS755.full).
+3. Build the nearest neighbor graph, as a torch_geometric.data.Data object.
+4. Split data into training, validation, testing sets.
 ```commandline\
 # 1.
 torch.manual_seed(2024)
 X, Y, coord, cov, corerr = geospaNN.Simulation(n, p, nn, funXY, theta, range=[0, 10])
 
 # 2.
-data = geospaNN.make_graph(X, Y, coord, nn)
+X, Y, coord, _ = geospaNN.spatial_order(X, Y, coord, method = 'max-min')
 
 # 3.
+data = geospaNN.make_graph(X, Y, coord, nn)
+
+# 4.
 data_train, data_val, data_test = geospaNN.split_data(X, Y, coord, neighbor_size=20,
                                                    test_proportion=0.2)
 ```    
@@ -202,3 +211,5 @@ Please cite the following paper when you use **geospaNN**:
 Datta, Abhirup, Sudipto Banerjee, Andrew O. Finley, and Alan E. Gelfand. 2016. “Hierarchical Nearest-Neighbor Gaussian Process Models for Large Geostatistical Datasets.” Journal of the American Statistical Association 111 (514): 800–812. doi:10.1080/01621459.2015.1044091.
 
 Zhan, Wentao, and Abhirup Datta. 2024. “Neural Networks for Geospatial Data.” Journal of the American Statistical Association, June, 1–21. doi:10.1080/01621459.2024.2356293.
+
+Katzfuss, Matthias, and Joseph Guinness. 2021. "A General Framework for Vecchia Approximations of Gaussian Processes." Statist. Sci. 36 (1) 124 - 141. https://doi.org/10.1214/19-STS755

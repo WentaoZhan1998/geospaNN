@@ -106,10 +106,9 @@ class nn_train():
                 print('End at epoch' + str(epoch))
                 break
             training_log["val_loss"].append(val_loss)
-            if data_test is None:
-                test_est = self.model(data_test.x).squeeze()
-                est_loss = torch.nn.functional.mse_loss(test_est, data_test.y).item()
-                training_log["est_loss"].append(est_loss)
+            test_est = self.model(data_test.x).squeeze()
+            est_loss = torch.nn.functional.mse_loss(test_est, data_test.y).item()
+            training_log["est_loss"].append(est_loss)
 
         return training_log
 
@@ -253,7 +252,7 @@ class nngls_train():
             training_log["sigma"].append(self.model.theta[0].item())
             training_log["phi"].append(self.model.theta[1].item())
             training_log["tau"].append(self.model.theta[2].item())
-            if data_test is None:
+            if data_test is not None:
                 _, _, test_est = self.model(data_test)
                 est_loss = torch.nn.functional.mse_loss(test_est, data_test.y).item()
                 training_log["est_loss"].append(est_loss)

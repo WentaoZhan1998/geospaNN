@@ -316,6 +316,7 @@ n = X.shape[0]
 nn = 20
 batch_size = 50
 
+X, Y, coord, _ = geospaNN.spatial_order(X, Y, coord, method = 'max-min')
 data = geospaNN.make_graph(X, Y, coord, nn)
 
 torch.manual_seed(2024)
@@ -440,5 +441,32 @@ plt.show()
 
     
 ![png](./data/output_figures/real_3.png)
-    
+
+```python
+variable_names = ['Precipitation accumulation', 'Air temperature', 'Pressure', 'Relative humidity', 'U-wind', 'V-wind']
+geospaNN.plot_PDP(model, X, variable_names)
+```
+<div style="display: flex; flex-wrap: wrap;">
+    <div style="margin: 10px;">
+        <img src="./data/output_figures/PDP/Precipitation accumulation.png" alt="Precipitation Accumulation" style="width: 330px; height: auto;">
+    </div>
+    <div style="margin: 10px;">
+        <img src="./data/output_figures/PDP/Air temperature.png" alt="Air Temperature" style="width: 330px; height: auto;">
+    </div>
+    <div style="margin: 10px;">
+        <img src="./data/output_figures/PDP/Pressure.png" alt="Pressure" style="width: 330px; height: auto;">
+    </div>
+</div>
+
+<div style="display: flex; flex-wrap: wrap;">
+    <div style="margin: 10px;">
+        <img src="./data/output_figures/PDP/U-wind.png" alt="U-wind" style="width: 330px; height: auto;">
+    </div>
+    <div style="margin: 10px;">
+        <img src="./data/output_figures/PDP/V-wind.png" alt="V-wind" style="width: 330px; height: auto;">
+    </div>
+    <div style="margin: 10px;">
+        <img src="./data/output_figures/PDP/Relative humidity.png" alt="Relative Humidity" style="width: 330px; height: auto;">
+    </div>
+</div>
 

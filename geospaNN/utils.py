@@ -10,6 +10,7 @@ import torch_geometric
 from torch_geometric.loader import NeighborLoader
 import math
 import warnings
+import random
 
 class LRScheduler():
     """
@@ -687,6 +688,7 @@ def Simulation(n: int, p:int,
                neighbor_size: int,
                fx: Callable,
                theta: tuple[float, float, float],
+               coord: Optional[torch.tensor] = None,
                range: tuple[float, float] = [0,1],
                sparse: Optional[bool] = True
                ):
@@ -707,6 +709,9 @@ def Simulation(n: int, p:int,
     theta
         theta[0], theta[1], theta[2] represent \sigma^2, \phi, \tau in the exponential covariance family,
         used for generating spatial random effect.
+    coord
+        A nxd tensor as the locations where to simulate the data, if not specified, randomly sample from [range[0], range[1]]^2
+        square.
     range
         A tuple [a, b] as the range of spatial locations. The spatial coordinates are sampled uniformly from [a, b]^2.
     sparse
@@ -725,7 +730,8 @@ def Simulation(n: int, p:int,
     corerr
         Simulated spatial random effect.
     """
-    coord = (range[1] - range[0]) * torch.rand(n, 2) + range[0]
+    if coord is None:
+        coord = (range[1] - range[0]) * torch.rand(n, 2) + range[0]
     sigma_sq, phi, tau = theta
     tau_sq = tau * sigma_sq
 
@@ -735,6 +741,72 @@ def Simulation(n: int, p:int,
     Y = fx(X).reshape(-1) + corerr + torch.sqrt(tau_sq) * torch.randn(n)
 
     return X, Y, coord, cov, corerr
+
+def spatial_order(X: torch.Tensor,
+                  Y: torch.Tensor,
+                  coord: torch.Tensor,
+                  method = 'max-min',
+                  numpropose = 2
+                  ):
+    """Spatial ordering for data
+
+    Order the data according to their spatial locations. A spatial ordering is necessary for NNGP to represent a valid
+    spatial process. (Datta et.al 2016)
+    Method 'coord-sum' stands for a simple spatial ordering by the summation of coordinates.
+    Method 'max-min' stands for the max-min ordering based on Euclidean distance. "Basically, this ordering starts at a
+    point in the center, then adds points one at a time that maximize the minimum distance from all previous points in
+    the ordering." (Katzfuss & Guinness 2021)
+
+    Parameters
+    ----------
+    X
+        nxp array of the covariates.
+    Y
+        Length n vector as the response.
+    coord
+        nxd array of the coordinates
+    method
+        Method 'coord-sum' stands for a simple spatial ordering by the summation of coordinates.
+        Method 'max-min' stands for the max-min ordering based on Euclidean distance. (Katzfuss & Guinness 2021)
+
+    Returns
+    -------
+    Ordered X, Ordered Y, Ordered coordinates, order
+
+    See Also
+    -------
+    Datta, Abhirup, et al. "Hierarchical nearest-neighbor Gaussian process models for large geostatistical datasets."
+    Journal of the American Statistical Association 111.514 (2016): 800-812.
+    Katzfuss, Matthias & Guinness, Joseph. "A General Framework for Vecchia Approximations of Gaussian Processes."
+    Statist. Sci. 36 (1) 124 - 141, February 2021. https://doi.org/10.1214/19-STS755
+    """
+    n = coord.shape[0]
+    if n >= 10000 and method == 'max-min':
+        warnings.warn("Too large for max-min ordering, switch to 'coord-sum' ordering!")
+        method = 'coord-sum'
+
+    d = coord.shape[1]
+    if method == 'max-min':
+        remaininginds = list(range(n))
+        orderinds = torch.zeros(n, dtype=torch.int)
+        distmp = distance(coord, coord.mean(dim = 0)).reshape(-1)
+        ordermp = torch.argsort(distmp)
+        orderinds[0] = ordermp[0]
+        remaininginds.remove(orderinds[0])
+        for j in range(1,n):
+            randinds = random.sample(remaininginds, min(numpropose, len(remaininginds)))
+            distarray = distance(coord[orderinds[0:j],:], coord[torch.tensor(randinds),:])
+            bestind = torch.argmax(distarray.min(axis = 1).values)
+            orderinds[j] = randinds[bestind]
+            remaininginds.remove(orderinds[j])
+    elif method == 'coord-sum':
+        orderinds = torch.argsort(coord.sum(axis = 0))
+    else:
+        warnings.warn("Keep the order")
+        orderinds = torch.tensor(range(n))
+
+    return X[orderinds,:], Y[orderinds], coord[orderinds,:], orderinds
+
 
 def make_graph(X: torch.Tensor,
                Y: torch.Tensor,
