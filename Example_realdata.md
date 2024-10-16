@@ -446,27 +446,15 @@ plt.show()
 variable_names = ['Precipitation accumulation', 'Air temperature', 'Pressure', 'Relative humidity', 'U-wind', 'V-wind']
 geospaNN.plot_PDP(model, X, variable_names)
 ```
-<div style="display: flex; flex-wrap: wrap;">
-    <div style="margin: 10px;">
-        <img src="./data/output_figures/PDP/Precipitation accumulation.png" alt="Precipitation Accumulation" style="width: 330px; height: auto;">
-    </div>
-    <div style="margin: 10px;">
-        <img src="./data/output_figures/PDP/Air temperature.png" alt="Air Temperature" style="width: 330px; height: auto;">
-    </div>
-    <div style="margin: 10px;">
-        <img src="./data/output_figures/PDP/Pressure.png" alt="Pressure" style="width: 330px; height: auto;">
-    </div>
-</div>
+<p align="middle">
+  <img src="./data/output_figures/PDP/Precipitation accumulation.png" alt="Precipitation accumulation" width="32%" />
+  <img src="./data/output_figures/PDP/Air temperature.png" alt="Air Temperature" width="32%" /> 
+  <img src="./data/output_figures/PDP/Pressure.png" alt="Pressure" width="32%" />
+</p>
 
-<div style="display: flex; flex-wrap: wrap;">
-    <div style="margin: 10px;">
-        <img src="./data/output_figures/PDP/U-wind.png" alt="U-wind" style="width: 330px; height: auto;">
-    </div>
-    <div style="margin: 10px;">
-        <img src="./data/output_figures/PDP/V-wind.png" alt="V-wind" style="width: 330px; height: auto;">
-    </div>
-    <div style="margin: 10px;">
-        <img src="./data/output_figures/PDP/Relative humidity.png" alt="Relative Humidity" style="width: 330px; height: auto;">
-    </div>
-</div>
+<p align="middle">
+  <img src="./data/output_figures/PDP/Relative humidity.png" alt="Relative Humidity" width="32%" />
+  <img src="./data/output_figures/PDP/U-wind.png" alt="U-wind" width="32%" /> 
+  <img src="./data/output_figures/PDP/V-wind.png" alt="V-wind" width="32%" />
+</p>
 
