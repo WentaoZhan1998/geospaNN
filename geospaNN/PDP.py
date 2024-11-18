@@ -22,33 +22,30 @@ class _PDP_estimator(BaseEstimator, RegressorMixin):
 def plot_PDP(model,
              X: torch.tensor,
              names: Optional[list] = [],
-             save = False):
+             save: bool = False):
     """Partial dependency plot for model on the data.
 
     A Partial Dependence Plot (PDP) is a visualization tool used to illustrate the relationship between a selected feature
     and the predicted outcome of a machine learning model, while averaging out the effects of other features.
     This helps to understand the marginal influence of a single feature on the model's predictions in a more interpretable way.
 
-    Parameters
-    ----------
-    model
-        Usually a model in nngls class. Can take any model having a .estimate() method that take tensor X as input and
-        predicted scalar value Y as output. (to implement for more models)
-    X
-        nxp array of the covariates.
-    names
-        List of names for variable, if not specified, use "variable 1" to "variable p".
-    save
-        Whether to save the PDPs to the working directory. Default False.
+    Parameters:
+        model:
+            Usually a model in nngls class. Can take any model having a .estimate() method that take tensor X as input and
+            predicted scalar value Y as output. (to implement for more models)
+        X:
+            nxp array of the covariates.
+        names:
+            List of names for variable, if not specified, use "variable 1" to "variable p".
+        save:
+            Whether to save the PDPs to the working directory. Default False.
 
-    Returns
-    -------
-    PDPs for each variable.
+    Returns:
+        PDPs for each variable.
 
-    See Also
-    -------
+    See Also:
     Datta, Abhirup, et al. "Hierarchical nearest-neighbor Gaussian process models for large geostatistical datasets."
-    Journal of the American Statistical Association 111.514 (2016): 800-812.
+    Journal of the American Statistical Association 111.514 (2016): 800-812. \
     Katzfuss, Matthias & Guinness, Joseph. "A General Framework for Vecchia Approximations of Gaussian Processes."
     Statist. Sci. 36 (1) 124 - 141, February 2021. https://doi.org/10.1214/19-STS755
     """

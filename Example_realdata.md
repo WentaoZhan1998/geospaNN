@@ -86,30 +86,30 @@ plt.show()
 
     
 ![png](./data/output_figures/real_1.png)
-    
-
-
 
 ```python
-lon = df_covariates.values[:,1]
-lat = df_covariates.values[:,2]
-covariates = df_covariates.values[:,3:]
-normalized_lon = (lon-min(lon))/(max(lon)-min(lon))
-normalized_lat = (lat-min(lat))/(max(lat)-min(lat))
-normalized_x_test = (x_test-min(lon))/(max(lon)-min(lon))
-normalized_y_test = (y_test-min(lat))/(max(lat)-min(lat))
+import numpy as np
 
-s_obs = np.vstack((normalized_lon[idx_new],normalized_lat[idx_new])).T
-X = covariates[idx_new,:]
+lon = df_covariates.values[:, 1]
+lat = df_covariates.values[:, 2]
+covariates = df_covariates.values[:, 3:]
+normalized_lon = (lon - min(lon)) / (max(lon) - min(lon))
+normalized_lat = (lat - min(lat)) / (max(lat) - min(lat))
+normalized_x_test = (x_test - min(lon)) / (max(lon) - min(lon))
+normalized_y_test = (y_test - min(lat)) / (max(lat) - min(lat))
+
+s_obs = np.vstack((normalized_lon[idx_new], normalized_lat[idx_new])).T
+X = covariates[idx_new, :]
 normalized_X = X
 for i in range(X.shape[1]):
-    normalized_X[:,i] = (X[:,i]-min(X[:,i]))/(max(X[:,i])-min(X[:,i]))
+    normalized_X[:, i] = (X[:, i] - min(X[:, i])) / (max(X[:, i]) - min(X[:, i]))
 
 X = normalized_X
 Y = z.reshape(-1)
 coord = s_obs
+data = np.concatenate([X, Y.reshape(-1,1), coord], axis = 1)
 #columns = ['precipitation', 'temperature', 'air pressure', 'relative humidity', 'U-wind', 'V-wind',
-#           'PM 2.5', 'longitude', 'latitude']
+#          'PM 2.5', 'longitude', 'latitude']
 #df = pd.DataFrame(data=data, index=range(data.shape[0]), columns=columns)
 #df.to_csv('./data/Normalized_PM2.5_20190605.csv')
 ```
