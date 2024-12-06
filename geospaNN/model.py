@@ -101,19 +101,22 @@ class NeighborPositions(MessagePassing):
         message():
     """
     def __init__(self, neighbor_size, coord_dimensions):
-        super().__init__(aggr="sum")
+        super().__init__(aggr="max")
         self.neighbor_size = neighbor_size
         self.coord_dimensions = coord_dimensions
 
     def forward(self, pos, edge_index, edge_attr, batch_size):
         positions = self.propagate(edge_index, pos=pos, edge_attr=edge_attr)[range(batch_size), :]
-        zero_index = torch.where(positions == 0)
-        positions[zero_index] = torch.rand(zero_index[0].shape) * 10000 * (positions.max() - positions.min())
+        zero_index = torch.where(positions == -torch.inf)
+        nz_index = torch.where(positions > -torch.inf)
+        positions[zero_index] = (torch.rand(zero_index[0].shape) + 1) * 10000 * \
+                                (positions[nz_index].max() - positions[nz_index].min())
         return positions
 
     def message(self, pos_j, edge_attr):
         num_edges = edge_attr.shape[0]
         msg = torch.zeros(num_edges, self.neighbor_size * self.coord_dimensions)
+        msg[:,:] = -torch.inf
         col_idc = edge_attr.flatten() * self.coord_dimensions
         row_idc = torch.tensor(range(num_edges)).int()
         msg[
@@ -261,7 +264,7 @@ class nngls(torch.nn.Module):
         Inv_Cov_Ni_Ni = self.compute_inverse_cov_matrices(coord_neighbor, batch.edge_list)
 
         B_i = torch.matmul(Inv_Cov_Ni_Ni, Cov_i_Ni.unsqueeze(2)).squeeze()
-        F_i = self.theta[0] + self.theta[2] - torch.sum(B_i * Cov_i_Ni, dim=1)
+        F_i = self.theta[0]*(1 + self.theta[2]) - torch.sum(B_i * Cov_i_Ni, dim=1)
 
         y_neighbor = self.gather_neighbor_outputs(batch.y, batch.edge_index, batch.edge_attr, batch.batch_size)
         y_decor = (batch.y[range(batch.batch_size)] - torch.sum(y_neighbor * B_i, dim=1)) / torch.sqrt(F_i)

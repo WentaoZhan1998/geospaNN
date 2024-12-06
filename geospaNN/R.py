@@ -44,7 +44,7 @@ def BRISC_estimation(residual, X, coord):
     tau_sq = theta_hat[1]
     sigma_sq = theta_hat[0]
     theta_hat[1] = phi
-    theta_hat[2] = tau_sq / sigma_sq
+    theta_hat[2] = max(tau_sq / sigma_sq, 1e-03)
 
     return beta, theta_hat
 

@@ -174,10 +174,11 @@ class nngls_train():
         Returns:
             Update self.model.theta by the new estimation.
         """
-        theta_new = theta_update(self.model.theta,
-                                 w,
+        theta_new = theta_update(w,
                                  data.pos,
-                                 self.model.neighbor_size)
+                                 self.model.theta,
+                                 self.model.neighbor_size,
+                                 )
 
         state_dict = self.model.state_dict()
         state_dict['theta'] = torch.from_numpy(theta_new)

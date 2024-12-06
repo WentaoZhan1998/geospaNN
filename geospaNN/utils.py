@@ -665,6 +665,7 @@ def Simulation(n: int, p:int,
                theta: tuple[float, float, float],
                coord: Optional[torch.tensor] = None,
                range: tuple[float, float] = [0,1],
+               X_pattern: Optional[str] = "uniform",
                sparse: Optional[bool] = True
                ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor | NNGP_cov, torch.Tensor]:
     """Simulate spatial data
@@ -709,7 +710,13 @@ def Simulation(n: int, p:int,
     tau_sq = tau * sigma_sq
 
     cov = make_cov(coord, theta, neighbor_size)
-    X = torch.rand(n, p)
+    if X_pattern is "uniform":
+        X = torch.rand(n, p)
+    elif X_pattern is "correlated":
+        _, _, _, _, X = Simulation(n*p, 1, neighbor_size, fx,
+                                   torch.tensor([theta[0], 5*theta[1], theta[2]]), range=[0, 1])
+        X = X.reshape(-1, p)
+        X = (X - X.min()) / (X.max() - X.min())
     corerr = rmvn(torch.zeros(n), cov, sparse)
     Y = fx(X).reshape(-1) + corerr + torch.sqrt(tau_sq) * torch.randn(n)
 
@@ -718,8 +725,9 @@ def Simulation(n: int, p:int,
 def spatial_order(X: torch.Tensor,
                   Y: torch.Tensor,
                   coord: torch.Tensor,
-                  method = 'max-min',
-                  numpropose = 2
+                  method: str = 'max-min',
+                  numpropose: Optional[int] = 2,
+                  seed: Optional[int] = 2024
                   ) -> Tuple[torch.Tensor,torch.Tensor,torch.Tensor,torch.Tensor]:
     """Spatial ordering for data
 
@@ -756,6 +764,7 @@ def spatial_order(X: torch.Tensor,
         method = 'coord-sum'
 
     d = coord.shape[1]
+    random.seed(seed)
     if method == 'max-min':
         remaininginds = list(range(n))
         orderinds = torch.zeros(n, dtype=torch.int)
@@ -927,11 +936,12 @@ def edit_batch(batch): #### Change to a method
     batch.edge_list = edge_list
     return batch
 
-def theta_update(theta0: torch.Tensor,
-                 w: torch.Tensor,
+def theta_update(w: torch.Tensor,
                  coord: torch.Tensor,
+                 theta0: Optional[torch.Tensor] = None,
                  neighbor_size: Optional[int] = 20,
-                 BRISC: Optional[bool] = True
+                 BRISC: Optional[bool] = True,
+                 min_tau: Optional[float] = 0.001
                  ) -> np.array:
     """Update the spatial parameters using maximum likelihood.
 
@@ -956,6 +966,8 @@ def theta_update(theta0: torch.Tensor,
             The number of nearest neighbors used for NNGP approximation. Default being 20.
         BRISC:
             Whether to use the optimization from BRISC. Default being True. Setting as False will largely increase the running time.
+        min_tau:
+            A minimum value of tau to avoid sinularity issue in matrix inversion. Default being 0.001.
 
     Returns:
         theta_updated:
@@ -974,11 +986,15 @@ def theta_update(theta0: torch.Tensor,
     warnings.filterwarnings("ignore")
     w = w.detach().numpy()
     coord = coord.detach().numpy()
-    theta = theta0.detach().numpy()
-    print('Theta updated from')
-    print(theta)
 
     if not BRISC:
+        theta = theta0.detach().numpy()
+        if theta0 is None:
+            warnings.warn("Theta not initialized, start from [1,1,1].")
+            theta = np.array([1,1,1])
+        else:
+            print('Theta updated from')
+            print(theta)
         n_train = w.shape[0]
         rank = make_rank(coord, neighbor_size)
         if n_train <= 2000:
@@ -1038,11 +1054,16 @@ def theta_update(theta0: torch.Tensor,
                 return (term1 + term2)
 
         res = scipy.optimize.minimize(likelihood, theta, method = 'L-BFGS-B',
-                                      bounds = [(0, None), (0, None), (0, None)])
+                                      bounds = [(0, None), (0, None), (min_tau, None)])
+        print('Theta estimated as')
+        print(res.x)
         return res.x
 
     else:
         _, theta = BRISC_estimation(w, None, coord)
+        theta[2] = max(theta[2], min_tau)
+        print('Theta estimated as')
+        print(theta)
         return theta
 
 def krig_pred(w_train: torch.Tensor,
