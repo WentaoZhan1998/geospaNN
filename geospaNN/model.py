@@ -1,4 +1,5 @@
 from .utils import make_cov_full, distance, edit_batch, krig_pred
+from .R import BRISC_estimation
 
 import torch
 import torch_geometric
@@ -156,7 +157,6 @@ class NeighborInfo(MessagePassing):
         row_idc = torch.tensor(range(num_edges)).int()
         msg[row_idc, col_idc] = y_j.squeeze().double()
         return msg
-
 
 class nngls(torch.nn.Module):
     """
@@ -336,5 +336,15 @@ class nngls(torch.nn.Module):
                 estimation_test = self.estimate(data_test.x)
                 return estimation_test + w_test
 
+def linear_gls(data_train):
+    beta, theta_hat_BRISC = BRISC_estimation(data_train.y.detach().numpy(),
+                                             torch.concat([torch.ones(data_train.x.shape[0], 1), data_train.x],
+                                                                   axis=1).detach().numpy(),
+                                             data_train.pos.detach().numpy())
+    def mlp_BRISC(X):
+        return beta[0] + torch.Tensor(beta[1:]) * X
+
+    model = nngls(p=p, neighbor_size=nn, coord_dimensions=2, mlp=mlp_BRISC, theta=torch.tensor(theta_hat_BRISC))
+    return model
 
 __all__ = ['nngls']

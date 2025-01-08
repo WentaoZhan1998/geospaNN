@@ -1,0 +1,12 @@
+# R History files
+.Rhistory
+
+# macOS DS_Store files
+.DS_Store
+
+# ipynb history
+.ipynb_checkpoints/
+.idea/
+
+# Rmarkdown html files
+demo_code/randomForestsGLS_demo.nb.html
