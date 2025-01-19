@@ -134,7 +134,7 @@ L\big(\hat{m}(\cdot)\big) = \frac{1}{n}\big(Y - \hat{m}(X)\big)^{\top}\Sigma^{-1
 $$ where $Y^* = Q^{1/2}Y$ and $\hat{m}^*(X) = Q^{1/2}\hat{m}(X)$. The
 GLS loss returns to an additive form, allowing for mini-batching instead
 of full-batch training. For likelihood-based parameter estimation, 
-**geospaNN** uses the `BRISC` R package as an efficient solution.
+**geospaNN** uses the `BRISC` R package as an efficient solution [@saha2018brisc].
 
 In NN-GLS, we assume that the covariance structure is unknown. The
 spatial parameters $\theta$ and the mean function $\hat{m}$ are
