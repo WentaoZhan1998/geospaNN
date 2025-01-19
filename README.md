@@ -9,7 +9,7 @@ that explicitly accounts for spatial correlation in the data. The package is dev
 under the framework of [PyG](https://pytorch-geometric.readthedocs.io/en/latest/) library. 
 NN-GLS is a geographically-informed Graph Neural Network (GNN) for analyzing large and irregular geospatial data, 
 that combines multi-layer perceptrons, Gaussian processes, and generalized least squares (GLS) loss. 
-NN-GLS offers both regression function estimation and spatial prediction, and can scale up to sample sizes of hundreds of thousands. A  vignette is available at [https://github.com/WentaoZhan1998/geospaNN/blob/main/vignette.pdf](https://github.com/WentaoZhan1998/geospaNN/blob/main/vignette.pdf). 
+NN-GLS offers both regression function estimation and spatial prediction, and can scale up to sample sizes of hundreds of thousands. A  vignette is available at [https://github.com/WentaoZhan1998/geospaNN/blob/main/vignette/vignette.pdf](https://github.com/WentaoZhan1998/geospaNN/blob/main/vignette.pdf). 
 Users are welcome to provide any helpful suggestions and comments.
 
 Acknowledgement: This work was partially supported by the National Institute of Environmental Health Sciences (NIEHS) under grant R01 ES033739.
