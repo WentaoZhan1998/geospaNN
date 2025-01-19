@@ -26,9 +26,10 @@ editor_options:
 
 In geographical science, datasets with spatial information are
 prevalent. In geostatistics, the spatial linear mixed model (SPLMM)\
-$$
+\[
 Y = X\beta + \epsilon(s)
-$$ has long been the standard approach to account for the fixed effects
+\]
+has long been the standard approach to account for the fixed effects
 between observations $y$ and covariates $x$, as well as the spatial
 effects $\epsilon(s)$ across spatial locations $s$. Typically, the
 spatial dependency embedded in $\epsilon(s)$ is modeled using a Gaussian
@@ -97,12 +98,14 @@ that when the data exhibits a correlation structure, generalized least
 squares (GLS) provides greater efficiency than ordinary least squares
 (OLS). For vanilla neural networks, it is typically assumed that the
 observations $Y_i$ are independent, and mean squared error is used as
-the loss function for regression tasks: $$
+the loss function for regression tasks: 
+\[
 Y = m(X) + \epsilon.
-$$ The OLS vs. GLS example motivates the introduction of a GLS-style
-loss: $$
+\] 
+The OLS vs. GLS example motivates the introduction of a GLS-style loss: 
+\[
 L\big(\hat{m}(\cdot)\big) = \frac{1}{n}\big(Y - \hat{m}(X)\big)^{\top}\Sigma^{-1}\big(Y - \hat{m}(X)\big).
-$$
+\]
 
 However, minimizing this GLS-style loss in practice presents several
 challenges:
@@ -120,18 +123,22 @@ Gaussian Process (NNGP) to approximate $\Sigma^{-1}$, and it naturally
 equates to a specialized Graph Neural Network (GNN). In brief, NNGP is a
 nearest-neighbor-based approximation to a full Gaussian Process with a
 specific covariance structure. Mathematically, given a covariance matrix
-$\Sigma$, its inverse can be approximated as: $$
+$\Sigma$, its inverse can be approximated as: 
+\[
 \Sigma^{-1} = Q = Q^{\top/2}Q^{1/2},
-$$ where $Q^{1/2}$ is a lower triangular sparse matrix. The $j$-th
+\] 
+where $Q^{1/2}$ is a lower triangular sparse matrix. The $j$-th
 element in the $i$-th row of $Q^{1/2}$ is non-zero if and only if $j$ is
 in the $i$-th $k$-nearest neighborhood, where $k$ is a pre-specified
 neighborhood size. This approximation simplifies both likelihood
 computation and the GLS-style loss, addressing the issues mentioned
 above (issue 1, 2, and 3).
 
-Specifically, for the GLS loss function: $$
+Specifically, for the GLS loss function: 
+\[
 L\big(\hat{m}(\cdot)\big) = \frac{1}{n}\big(Y - \hat{m}(X)\big)^{\top}\Sigma^{-1}\big(Y - \hat{m}(X)\big) = \frac{1}{n}\big(Y^* - \hat{m}^*(X)\big)^{\top}\big(Y^* - \hat{m}^*(X)\big),
-$$ where $Y^* = Q^{1/2}Y$ and $\hat{m}^*(X) = Q^{1/2}\hat{m}(X)$. The
+\] 
+where $Y^* = Q^{1/2}Y$ and $\hat{m}^*(X) = Q^{1/2}\hat{m}(X)$. The
 GLS loss returns to an additive form, allowing for mini-batching instead
 of full-batch training. For likelihood-based parameter estimation, 
 **geospaNN** uses the `BRISC` R package as an efficient solution [@saha2018brisc].
