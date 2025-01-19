@@ -22,128 +22,156 @@ editor_options:
     wrap: 72
 ---
 
-# Summary
+### Summary
 
-In geographical science, datasets with spatial information are the . In
-geostatistics, spatial linear mixed model (SPLMM)
-$Y = X\beta + \epsilon(s)$ has been a standard model to account for the
-fixed effect between observations $y$ and covariates $x$ as well as the
-spatial effect $\epsilon(s)$ among spatial locations $s$. Usually, the
-spatial dependency embedded in $\epsilon(s)$ is modeled through a
-Gaussian Process which brings parsimony and efficient solution.
+In geographical science, datasets with spatial information are
+prevalent. In geostatistics, the spatial linear mixed model (SPLMM)\
+$$
+Y = X\beta + \epsilon(s)
+$$ has long been the standard approach to account for the fixed effects
+between observations $y$ and covariates $x$, as well as the spatial
+effects $\epsilon(s)$ across spatial locations $s$. Typically, the
+spatial dependency embedded in $\epsilon(s)$ is modeled using a Gaussian
+Process, which provides a parsimonious and efficient solution.
 
-Recently, with the increasingly complicated interaction among the
-variables, machine learning techniques have been introduced to
-geostatistics, extending SPLMM to a non-linear scenario by replacing
-$X\beta$ with $m(X)$. However, few of them were originally designed for
-the dependent data structure. Even for those adaptive modifications
-accounting for dependency, the covariance structure significantly
-restricts their scalability. Given these background, we introduce
-geospaNN, which resolve the above concerns through NN-GLS, a novel
-rendition of Neural Networks (NN) proposed in @zhan2024neural. GeospaNN
-simultaneously achieves mean function estimation, prediction (together
-with prediction interval). To achieve computational efficiency, geospaNN
-utilized the computationally convenien Nearest Neighbor Gaussian Process
-(NNGP) approximation [@datta2016nearest, @datta2022nearest]. GeospaNN is
-also the first python package implements NNGP for scalable
-covariance-matrix computation, which can benefit other geospatial
-computation tool.
+Recently, machine learning techniques have been incorporated into
+geostatistics to address increasingly complex interactions among
+variables, extending the SPLMM to non-linear scenarios by replacing
+$X\beta$ with $m(X)$. However, few methods were originally designed for
+dependent data structures. Even those modified to account for
+dependencies still face scalability limitations due to the restrictive
+covariance structures. To address these concerns, we introduce
+**GeospaNN**, which resolves these issues through NN-GLS, a novel
+adaptation of Neural Networks (NN) proposed in @zhan2024neural.
+**GeospaNN** simultaneously performs mean function estimation and
+prediction (including prediction intervals). For computational
+efficiency, **GeospaNN** leverages the Nearest Neighbor Gaussian Process
+(NNGP) approximation [@datta2016nearest, @datta2022nearest]. It is also
+the first Python package to implement NNGP for scalable covariance
+matrix computation, benefiting other geospatial computation tools.
 
-# Statement of need
+### Statement of Need
 
-GeospaNN is a Python package for geospatial analysis using NN-GLS, a
-novel extension of neural networks that explicitly accounts for spatial
-correlation in the data. The package implements NN-GLS using PyTorch, an
-open-source library widely used for building machine learning models. As
-was illustrated in @zhan2024neural, GeospaNN is equivalently a
-geographically-informed Graph Neural Network (GNN), and is embedded into
-the PyG (PyTorch Geometric) framework designed for efficient GNN tool on
-irregular data structures like graphs. GeospaNN is primarily designed
-for researchers and scientists within the fields of machine learning and
-spatial statistics, but can be generally used for estimation and
-prediction tasks on any data with dependency structure. Additionally,
-geospaNN provides user-friendly wrappers for data simulation,
-preprocessing, and model training that simplifies the analytical
-pipeline. Within geospaNN, the implementation of NNGP approximation is
-of independent importance to NN-GLS, which enables scalable
-covariance-matrix-inversion and relevant Python-based applications.
+**GeospaNN** is a Python package for geospatial analysis that uses
+NN-GLS, a novel extension of neural networks explicitly designed to
+account for spatial correlation in the data. The package implements
+NN-GLS using PyTorch, an open-source library widely used for building
+machine learning models. As illustrated in @zhan2024neural, **GeospaNN**
+is effectively a geographically-informed Graph Neural Network (GNN). It
+can be embedded within the PyG (PyTorch Geometric) framework, which is
+designed for efficient GNNs on irregular data structures like graphs.
+**GeospaNN** is primarily intended for researchers and scientists in
+machine learning and spatial statistics, but can also be applied more
+generally to estimation and prediction tasks involving data with
+dependency structures. **GeospaNN** provides user-friendly wrappers for
+data simulation, preprocessing, and model training, which significantly
+simplify the analytical pipeline.
 
-As the goal of geospaNN, we provide a light, efficient, friendly machine
-learning tool for geospatial analysis. According to the simulation, for
-data with half million observations, it takes less than an hour to run
-the pipeline on a standard personal laptop. A significant part of
-geospaNN has been used in articles such as @zhan2024neural,
-@heaton2024adjusting. In the future, geospaNN will play an significant
-role on the interface between machine learning and spatial statistics
-and serve as a foundation to the scientific and methodological
-explorations.
+The implementation of the NNGP approximation within **GeospaNN** is of
+independent importance, enabling scalable covariance matrix inversion
+and enhancing relevant Python-based applications.
 
-# The GeospaNN package
+The goal of **GeospaNN** is to provide a lightweight, efficient, and
+user-friendly machine learning tool for geospatial analysis. According
+to simulations, the package can handle datasets with up to half a
+million observations in under an hour on a standard personal laptop. A
+significant portion of **GeospaNN** has already been used in articles
+such as @zhan2024neural and @heaton2024adjusting. In the future,
+**GeospaNN** is poised to play a significant role at the interface of
+machine learning and spatial statistics, serving as a foundation for
+both scientific and methodological explorations.
 
-This section provides an overview of the package, including the NN-GLS
-architecture and several technical details. The website of geospaNN is
-also available [@geospaNN], providing get practical examples of using
-geospaNN and detailed documentations. A vignette is provided at
-[@geospaNN] to illustrate the typical usage of the package.
+# The GeospaNN Package
 
-## NN-GLS overview
+This section provides an overview of the **GeospaNN** package, including
+the NN-GLS architecture and several technical details. For practical
+examples and detailed documentation, visit the **GeospaNN** website at
+<https://wentaozhan1998.github.io/geospaNN-doc/> [@geospaNN]. A vignette
+is also available on the website [@geospaNN] to illustrate typical usage
+of the package.
 
-In a simple linear regression scenario, according to the Gauss-Markov's
-Theorem, when the data has a correlation structure, generalized least
-squares (GLS) is more efficient than ordinary least square (OLS). For
-vanilla neural networks, people assume independent observations $Y_i$'s
-and use mean squared error as the loss function for regression task.
-$Y = m(X) + \epsilon$. The OLS vs GLS example motivated the introduction
-of the GLS-style loss,
-$$ L\big(\hat{m}(\cdot)\big) = \frac{1}{n}\big(Y - \hat{m}(X)\big)^{\top}\Sigma^{-1}\big(Y - \hat{m}(X)\big)$$.
+## NN-GLS Overview
 
-However, there are several practical issues for minimizing the GLS-style
-loss in practice.
+In a simple linear regression scenario, Gauss-Markov's Theorem states
+that when the data exhibits a correlation structure, generalized least
+squares (GLS) provides greater efficiency than ordinary least squares
+(OLS). For vanilla neural networks, it is typically assumed that the
+observations $Y_i$ are independent, and mean squared error is used as
+the loss function for regression tasks: $$
+Y = m(X) + \epsilon.
+$$ The OLS vs. GLS example motivates the introduction of a GLS-style
+loss: $$
+L\big(\hat{m}(\cdot)\big) = \frac{1}{n}\big(Y - \hat{m}(X)\big)^{\top}\Sigma^{-1}\big(Y - \hat{m}(X)\big).
+$$
 
-1.  The covariance matrix $\Sigma$ comes from a parametric covariance
-    function, which is unknown in practice.
-2.  Even $\Sigma$ is well-estimated, when sample size $n$ goes large,
-    inverting $\Sigma$ will be computationally infeasible.
+However, minimizing this GLS-style loss in practice presents several
+challenges:
+
+1.  The covariance matrix $\Sigma$ is based on a parametric covariance
+    function, which is typically unknown.
+2.  Even if $\Sigma$ is well-estimated, inverting $\Sigma$ becomes
+    computationally infeasible as the sample size $n$ grows large.
 3.  Since the GLS loss is not additive across observations,
-    mini-batching, a key ingredient to the success of modern deep NN,
-    will not be applicable.
+    mini-batching---an essential technique in modern deep neural
+    networks---cannot be applied directly.
 
-NN-GLS addresses the issues all at once by introducing NNGP to derive an
-approximation for $\Sigma^{-1}$ and naturally equating itself as a
-special Graphical Neural Networks. In brief, NNGP is an
+NN-GLS addresses these issues by introducing the Nearest Neighbor
+Gaussian Process (NNGP) to approximate $\Sigma^{-1}$, and it naturally
+equates to a specialized Graph Neural Network (GNN). In brief, NNGP is a
 nearest-neighbor-based approximation to a full Gaussian Process with a
-specific covariance structure. On the matrix level, given a covariance
-matrix $\Sigma$, its inverse can be approximated by
-$$\Sigma^{-1} = Q = Q^{\top/2}Q^{1/2}$$ where $Q^{1/2}$ is a lower
-triangular sparse matrix where the $j$th element on $i$th row is
-non-zero if and only if $j$ is in $i$'s $k$-nearest neighborhood, where
-$k$ is a pre-specified neighbor size. $\Sigma^{-1}$ is the core to both
-likelihood and GLS-style loss computation, thus significantly simplify
-the maximum likelihood estimation for spatial parameters and $\Sigma$
-(issue 1), as well as the loss-minimization for mean function $\hat{m}$
-(issue 2 and 3). Specifically for the GLS-loss function:
-$$L\big(\hat{m}(\cdot)\big) = \frac{1}{n}\big(Y - \hat{m}(X)\big)^{\top}\Sigma^{-1}\big(Y - \hat{m}(X)\big) = \frac{1}{n}\big(Y^* - \hat{m}^*(X)\big)^{\top}\big(Y^* - \hat{m}^*(X)\big)$$,
-where $Y^* = Q^{1/2}Y$ and $\hat{m}^*(X) = Q^{1/2}\hat{m}(X)$. The
-GLS-loss returns to an additive format, and mini-batching can be applied
-instead of full-batch. In geospaNN, the BRISC R package is used for
-likelihood-based parameter estimation.
+specific covariance structure. Mathematically, given a covariance matrix
+$\Sigma$, its inverse can be approximated as: $$
+\Sigma^{-1} = Q = Q^{\top/2}Q^{1/2},
+$$ where $Q^{1/2}$ is a lower triangular sparse matrix. The $j$-th
+element in the $i$-th row of $Q^{1/2}$ is non-zero if and only if $j$ is
+in the $i$-th $k$-nearest neighborhood, where $k$ is a pre-specified
+neighborhood size. This approximation simplifies both likelihood
+computation and the GLS-style loss, addressing the issues mentioned
+above (issue 1, 2, and 3).
 
-In NN-GLS, we assume the covariance structure to be unknown, the spatial
-parameters $\theta$ and the mean function $\hat{m}$ are estimated
-iteratively. The model training proceeds until the validation loss
-converges. Based on the estimations, nearest-neighbor-based kriging is
-used for the prediction and confidence interval at new locations.
+Specifically, for the GLS loss function: $$
+L\big(\hat{m}(\cdot)\big) = \frac{1}{n}\big(Y - \hat{m}(X)\big)^{\top}\Sigma^{-1}\big(Y - \hat{m}(X)\big) = \frac{1}{n}\big(Y^* - \hat{m}^*(X)\big)^{\top}\big(Y^* - \hat{m}^*(X)\big),
+$$ where $Y^* = Q^{1/2}Y$ and $\hat{m}^*(X) = Q^{1/2}\hat{m}(X)$. The
+GLS loss returns to an additive form, allowing for mini-batching instead
+of full-batch training. For likelihood-based parameter estimation, 
+**geospaNN** uses the `BRISC` R package as an efficient solution.
 
-## NNGP and other features
+In NN-GLS, we assume that the covariance structure is unknown. The
+spatial parameters $\theta$ and the mean function $\hat{m}$ are
+estimated iteratively, and training proceeds until the validation loss
+converges. Once estimation is complete, nearest-neighbor-based kriging
+is used to generate predictions and confidence intervals at new
+locations.
 
-Alongside the estimation and prediction tasks, geospaNN includes an
-efficient implementation of NNGP approximation. Given an $n\times n$
-covariance matrix $\Sigma$ and a k-neighbor list (nearest neighbors by
-default), our implementation guarantees a $O(n)$ computational
-complexity for any aproximate matrix products involving $\Sigma^{1/2}$,
-$\Sigma^{-1/2}$, and $\Sigma^{-1}$. NNGP approximation is foundamental
-to several important scalable features in geospaNN, including spatial
-data simulation and kriging.
+## NNGP and Other Features
+
+In addition to estimation and prediction, **GeospaNN** efficiently
+implements the NNGP approximation. Given an $n \times n$ covariance
+matrix $\Sigma$ and a $k$-neighbor list (defaulting to nearest
+neighbors), our implementation guarantees $O(n)$ computational
+complexity for any approximate matrix products involving $\Sigma^{1/2}$,
+$\Sigma^{-1/2}$, and $\Sigma^{-1}$. NNGP is fundamental to several key
+scalable features in **GeospaNN**, including spatial data simulation and
+kriging.
+
+# Discussion
+
+The GeospaNN package offers an efficient implementation of the NN-GLS
+approach proposed in @zhan2024neural. It accounts for spatial
+correlation by replacing the original loss function with a GLS-style
+version. GeospaNN is capable of performing various statistical tasks,
+including mean-function estimation, parameter estimation, prediction,
+and uncertainty quantification. The NNGP approximation is fundamental to
+the scalable implementation of GeospaNN. Moreover, due to the sparsity
+of the NNGP approximation, GeospaNN can be seamlessly integrated into
+the framework of Graph Neural Networks (GNNs), opening up new
+possibilities for a wide range of advanced machine learning
+architectures. A promising future direction for GeospaNN is to evolve
+into a general framework for geospatially-informed deep learning, where
+graph-based message-passing (convolution) can occur multiple times, with
+weights determined by the spatial process to maintain statistical
+interpretability. We are also planning to explore the extension of
+geospaNN towards other data types and distributions in the future.
 
 # Acknowledgements
 
