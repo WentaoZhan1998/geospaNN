@@ -10,3 +10,7 @@
 
 # Rmarkdown html files
 demo_code/randomForestsGLS_demo.nb.html
+
+# vignette
+/vignette/*
+!/vignette/vignette.pdf
