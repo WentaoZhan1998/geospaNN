@@ -1,25 +1,26 @@
 ---
 title: 'GeospaNN: An python package for geospatial neural networks'
 tags:
-  - Python
-  - Pytorch
-  - Graph neural networks
-  - Geospatial data
-  - Gaussian Process
-  - Kriging
+- Python
+- Pytorch
+- Graph neural networks
+- Geospatial data
+- Gaussian Process
+- Kriging
+date: "13 December 2024"
+output: pdf_document
 authors:
-  - name: Wentao Zhan
-    affiliation: 1 # (Multiple affiliations must be quoted)
-  - name: Abhirup Datta
-    affiliation: 1
-affiliations:
- - name: Department of Biostatistics, Johns Hopkins Bloomberg School of Public Health
-   index: 1
-date: 13 December 2024
+- name: Wentao Zhan
+  affiliation: 1
+- name: Abhirup Datta
+  affiliation: 1
 bibliography: paper.bib
-editor_options: 
-  markdown: 
+editor_options:
+  markdown:
     wrap: 72
+affiliations:
+- name: Department of Biostatistics, Johns Hopkins Bloomberg School of Public Health
+  index: 1
 ---
 
 ### Summary
@@ -47,7 +48,7 @@ adaptation of Neural Networks (NN) proposed in @zhan2024neural.
 `geospaNN` simultaneously performs mean function estimation and
 prediction (including prediction intervals). For computational
 efficiency, `geospaNN` leverages the Nearest Neighbor Gaussian Process
-(NNGP) approximation [@datta2016nearest, @datta2022nearest]. It is also
+(NNGP) approximation [@datta2016nearest]. It is also
 the first Python package to implement NNGP for scalable covariance
 matrix computation, benefiting other geospatial computation tools.
 
@@ -87,8 +88,8 @@ both scientific and methodological explorations.
 This section provides an overview of the `geospaNN` package, including
 the NN-GLS architecture and several technical details. For practical
 examples and detailed documentation, visit the `geospaNN` website at
-<https://wentaozhan1998.github.io/geospaNN-doc/> [@geospaNN]. A vignette
-is also available on the website [@geospaNN] to illustrate typical usage
+<https://wentaozhan1998.github.io/geospaNN-doc>. A [vignette](https://github.com/WentaoZhan1998/geospaNN/blob/main/vignette/vignette.pdf)
+is also available on the website to illustrate typical usage
 of the package.
 
 ## NN-GLS Overview
@@ -122,7 +123,7 @@ NN-GLS addresses these issues by introducing the Nearest Neighbor
 Gaussian Process (NNGP) to approximate $\Sigma^{-1}$, and it naturally
 equates to a specialized Graph Neural Network (GNN). In brief, NNGP is a
 nearest-neighbor-based approximation to a full Gaussian Process with a
-specific covariance structure. Mathematically, given a covariance matrix
+specific covariance structure [@datta2022nearest]. Mathematically, given a covariance matrix
 $\Sigma$, its inverse can be approximated as: 
 $$
 \Sigma^{-1} = Q = Q^{\top/2}Q^{1/2},
