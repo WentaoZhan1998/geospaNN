@@ -4,7 +4,7 @@
 # GeospaNN - Neural networks for geospatial data
 **Authors**: Wentao Zhan (<wzhan3@jhu.edu>), Abhirup Datta (<abhidatta@jhu.edu>)
 ## A package based on the paper: [Neural networks for geospatial data](https://www.tandfonline.com/doi/abs/10.1080/01621459.2024.2356293?casa_token=UaGsBumw4JAAAAAA:RD4cFpZW7lk3pu8Q5uVdxm5o3_RXWKRLXgxByEgl68qENKJfiNsS_Ci5izQ9WMQkZUKgSXasagyLQw)
-**GeospaNN** is a formal implementation of NN-GLS, the Neural Networks for geospatial data proposed in Zhan et.al (2023), 
+**GeospaNN** is a formal implementation of NN-GLS, the Neural Networks for geospatial data proposed in Zhan et.al (2024), 
 that explicitly accounts for spatial correlation in the data. The package is developed using [PyTorch](https://pytorch.org/) and 
 under the framework of [PyG](https://pytorch-geometric.readthedocs.io/en/latest/) library. 
 NN-GLS is a geographically-informed Graph Neural Network (GNN) for analyzing large and irregular geospatial data, 
@@ -16,7 +16,7 @@ Acknowledgement: This work was partially supported by the National Institute of 
 
 ## Overview
 The Python package **geospaNN** stands for 'geospatial Neural Networks', where we implement NN-GLS, 
-neural networks tailored for analysis of geospatial data that explicitly accounts for spatial dependence (Zhan et.al, 2023). 
+neural networks tailored for analysis of geospatial data that explicitly accounts for spatial dependence (Zhan et.al, 2024). 
 Geospatial data naturally exhibits spatial correlation or dependence and traditional geostatistical analysis often relies on 
 model-based approaches to handle the spatial dependency, treating the spatial outcome $y(s)$ as a linear regression on covariates $x(s)$ and 
 modeling dependency through the spatially correlated errors. 
@@ -31,7 +31,7 @@ The resulting loss function then becomes a generalized least squares (GLS) loss 
 thereby explicitly incorporating spatial correlation into the neural network optimization. 
 The idea mimics the extension of ordinary least squares (OLS) loss to GLS loss in linear regression for dependent data.
 
-Zhan and Datta, 2023 shows that neural networks with GLS loss can be represented as a graph neural network, 
+Zhan and Datta, 2024 shows that neural networks with GLS loss can be represented as a graph neural network, 
 with the GP covariances guiding the neighborhood aggregation on the output layer. 
 Thus NN-GLS is implemented in **geospaNN** with the framework of Graph Neural Networks (GNN), and is highly generalizable. 
 (The implementation of geospaNN' uses the 'torch_geom' module.)

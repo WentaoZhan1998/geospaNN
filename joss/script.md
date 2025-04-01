@@ -1,5 +1,5 @@
 ---
-title: 'GeospaNN: An python package for geospatial neural networks'
+title: '**geospaNN**: A Python package for geospatial neural networks'
 tags:
 - Python
 - Pytorch
@@ -7,7 +7,6 @@ tags:
 - Geospatial data
 - Gaussian Process
 - Kriging
-date: "13 December 2024"
 output: pdf_document
 authors:
 - name: Wentao Zhan
@@ -39,12 +38,12 @@ The linear regression part of SPLMM is restrictive. Recently, machine learning t
 
 `geospaNN` is a Python package for geospatial analysis that uses NN-GLS, a novel and scalable class of neural networks explicitly designed to account for spatial correlation in the data. The package implements NN-GLS using PyTorch, an open-source library widely used for building machine learning models. As illustrated in @zhan2024neural, `geospaNN` is effectively represented as a geographically-informed Graph Neural Network (GNN) by using NNGP covariance matrices. It can be embedded within the PyG (PyTorch Geometric) framework, which is designed for scalable execution of GNNs on irregular data structures like graphs. `geospaNN` is primarily intended for researchers and scientists in machine learning and spatial statistics, but can also be applied more generally to estimation and prediction tasks involving other data with dependency structures, like time-series. `geospaNN` provides user-friendly wrappers for data simulation, preprocessing, and model training, which significantly simplify the analytical pipeline.
 
-The implementation of NNGP models within `geospaNN` is of independent importance. NNGP enables scalable covariance matrix inversions, which features extensively in geospatial models. There exists two widely popular R-packages `spNNGP` and `BRISC` for implementations of NNGP, but to our knowledge there is no Python implementation of NNGP. We thus offer an avenue to efficiently analyze massive geospatial datasets in Python using NNGP (linear models) and NN-GLS (non-linear models). <!---based applications.-->
+The implementation of NNGP models within `geospaNN` is of independent importance. NNGP enables scalable covariance matrix inversions, which features extensively in geospatial models. There exist two widely used R-packages `spNNGP` and `BRISC` for implementations of NNGP, but to our knowledge there is no Python implementation of NNGP. We thus offer an avenue to efficiently analyze massive geospatial datasets in Python using NNGP (linear models) and NN-GLS (non-linear models). <!---based applications.-->
 
 The goal of `geospaNN` is to provide a lightweight, efficient, and user-friendly machine learning tool for geospatial analysis that can directly model spatial correlation. According to simulations, the package can handle datasets with up to half a million observations in under an hour on a standard personal laptop (Macbook with an M1 8-core processor, 16 GB Unified RAM). A significant portion of `geospaNN` has already been used in articles such as @zhan2024neural and @heaton2024adjusting. In the future, we anticipate that `geospaNN` will play a significant role at the interface of machine learning and spatial statistics, serving as a foundation for both scientific and methodological explorations.
 
 # Statement of the field
-In python, Geospatial data is mostly processed with `GeoPandas` library [@jordahl2021geopandas], which provides efficient spatial operations and visualization. Mean while, deep learning in python is widely conducted with `PyTorch` library [@paszke2019pytorch]. To take the advantages of existing frameworks and extend the analysis with geospatial deep learning, advanced tools have been developed, such as `TorchGeo` [@TorchGeo2022] specialized in tasks including land cover classification, object detection, and geospatial segmentation. Independently in R, the package `geodl` recently came out for analyzing a wide range of geospatial and spatial-temporal data [@maxwell2024geodl]. Their implementation uses the R (`terra`) and C++ languages without dependency on any Python environment. However, the application scenarios of these softwares are limited, for example, `TorchGeo` only allows raster or vector data such as satellite image as input; `geodl` is primarily designed for pixel-level applicatoin (semantic segmentation) and also requires transforming the data into raster-based format. 
+In Python, geospatial data is primarily processed using the `GeoPandas` library [@jordahl2021geopandas], which enables efficient spatial operations and visualization. Meanwhile, deep learning frameworks such as `PyTorch` [@paszke2019pytorch] are widely used for advanced machine learning applications. To integrate geospatial data with deep learning, several specialized tools have been developed. Notably, `TorchGeo` [@TorchGeo2022] extends `PyTorch` for tasks such as land cover classification, object detection, and geospatial segmentation. Independently, the R package `geodl` [@maxwell2024geodl] was recently introduced for analyzing geospatial and spatiotemporal data. Implemented in R (`terra`) and C++, `geodl` operates without requiring a Python environment. However, these tools have certain limitations. For example, `TorchGeo` primarily supports raster and vector data, such as satellite imagery, while `geodl` is designed for pixel-level applications (e.g., semantic segmentation) and requires data transformation into a raster-based format.
 
 Integrating spatial information into a graph enhances the flexibility and effectiveness of geospatial analysis. One of the most widely used approaches is Graph Neural Networks (GNNs), which efficiently process graph-structured data by learning node, edge, and graph-level representations through message passing and aggregation. For GNN implementation, the PyTorch Geometric (PyG) library, built on PyTorch, provides a highly customizable framework for defining graph convolutional layers [@PyG2019]. GNNs have been widely applied in geospatial analysis, with notable examples including disease forecasting [@tonks2024forecasting], crop yield prediction [@fan2022gnn], and traffic flow modeling [@wang2020traffic]. However, despite their growing adoption, there is still no systematic analytical software tailored for broad use within the statistical community.
 
@@ -113,7 +112,7 @@ For simulation, `geospaNN` allow users to customize the spatial parameters and m
 
 `geospaNN` offers user-friendly modules for essential machine learning tasks, including neural network (NN) architecture design, training log management, and result visualization. In addition to tracking validation loss, the training log also visualizes the evolution of spatial parameters, providing deeper insight into model convergence. For high-dimensional result interpretation, `geospaNN` incorporates partial dependence plots (PDPs) to illustrate the marginal effect of individual covariates on the outcome. When compared across multiple models, PDPs offer invaluable insights into the complex relationships between covariates and the predicted outcome.
 
-As a special case of the spatial non-linear mixed model, SPLMM can also be solved by `geospaNN`. The implementation here is equivalent to the R-packages BRISC and should be an optimal choice for the python users if efficient SPLMM solution is wanted for large geospatial dataset.
+As a special case of the spatial non-linear mixed model, SPLMM can also be solved by `geospaNN`. The implementation here is equivalent to the R-packages `BRISC` and should be an optimal choice for the Python users if efficient SPLMM solution is wanted for large geospatial dataset.
 
 All these functions are included explicitly in the package and can be called independently.
 

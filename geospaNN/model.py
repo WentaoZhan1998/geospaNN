@@ -202,16 +202,16 @@ class nngls(torch.nn.Module):
     
 
     See Also:
-    nngls_train : Training class for NN-GLS model. \
+        nngls_train : Training class for NN-GLS model. \
 
-    Datta, Abhirup, et al. "Hierarchical nearest-neighbor Gaussian process models for large geostatistical datasets."
-    Journal of the American Statistical Association 111.514 (2016): 800-812. \
+        Datta, Abhirup, et al. "Hierarchical nearest-neighbor Gaussian process models for large geostatistical datasets."
+        Journal of the American Statistical Association 111.514 (2016): 800-812. \
 
-    Datta, Abhirup. "Sparse nearest neighbor Cholesky matrices in spatial statistics."
-    arXiv preprint arXiv:2102.13299 (2021). \
+        Datta, Abhirup. "Sparse nearest neighbor Cholesky matrices in spatial statistics."
+        arXiv preprint arXiv:2102.13299 (2021). \
 
-    ZZhan, Wentao, and Abhirup Datta. 2024. “Neural Networks for Geospatial Data.”
-    Journal of the American Statistical Association, June, 1–21. doi:10.1080/01621459.2024.2356293.\
+        ZZhan, Wentao, and Abhirup Datta. 2024. “Neural Networks for Geospatial Data.”
+        Journal of the American Statistical Association, June, 1–21. doi:10.1080/01621459.2024.2356293.\
     """
     def __init__(
             self,
