@@ -1,4 +1,4 @@
-from .utils import make_cov_full, distance, edit_batch, krig_pred
+from .utils import make_cov_full, distance, edit_batch, krig_pred, make_cov
 from .R import BRISC_estimation
 
 import torch
@@ -336,15 +336,41 @@ class nngls(torch.nn.Module):
                 estimation_test = self.estimate(data_test.x)
                 return estimation_test + w_test
 
-def linear_gls(data_train):
+def linear_gls(data_train: torch_geometric.data.Data,
+               neighbor_size: Optional[int] = 20
+               ) -> nngls:
+    """Spatial linear mixed model for geospatial data
+
+    Find the upper triangular matrix B and diagonal matrix F such that (I-B)'F^{-1}(I-B) appriximate the precision matrix
+    (inverse of the covariance matrix). The level of approximation increase with the neighbor size. When using the full neighbor,
+    the NNGP appriximation degrade to the Cholesky decomposition. (see https://arxiv.org/abs/2102.13299 for more details.)
+
+    Parameters:
+        data_train:
+                Training data containing x, y and spatial coordinates, can be the output of split_data() or make_graph().
+        neighbor_size:
+                Number of nearest neighbors used for NNGP approximation, default value is 20.
+
+    Returns:
+        model: nngls
+            A model in the class of nngls, with additional attribute model.var containing the estimated
+            variance of linear coefficients
+
+    See Also:
+        Saha, Arkajyoti, and Abhirup Datta. "BRISC: bootstrap for rapid inference on spatial covariances."
+        Stat 7.1 (2018): e184.
+    """
+    x = torch.concat([torch.ones(data_train.x.shape[0], 1), data_train.x],axis=1)
     beta, theta_hat_BRISC = BRISC_estimation(data_train.y.detach().numpy(),
-                                             torch.concat([torch.ones(data_train.x.shape[0], 1), data_train.x],
-                                                                   axis=1).detach().numpy(),
+                                             x.detach().numpy(),
                                              data_train.pos.detach().numpy())
     def mlp_BRISC(X):
         return beta[0] + torch.Tensor(beta[1:]) * X
 
-    model = nngls(p=p, neighbor_size=nn, coord_dimensions=2, mlp=mlp_BRISC, theta=torch.tensor(theta_hat_BRISC))
+    model = nngls(p=data_train.x.shape[1], neighbor_size=15, coord_dimensions=2, mlp=mlp_BRISC, theta=torch.tensor(theta_hat_BRISC))
+    cov = make_cov(data_train.pos, theta_hat_BRISC.theta, neighbor_size = neighbor_size)
+    Z = cov.decorrelate(x)
+    model.var = torch.linalg.pinv(Z.T @ Z)
     return model
 
 __all__ = ['nngls']

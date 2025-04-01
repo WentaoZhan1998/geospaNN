@@ -344,7 +344,7 @@ training_log = nn_model.train(data_train, data_val, data_test)
 
 
 ```python
-theta0 = geospaNN.theta_update(torch.tensor([1, 1.5, 0.01]), mlp_nn(data_train.x).squeeze() - data_train.y, data_train.pos, neighbor_size = 20)
+theta0 = geospaNN.theta_update(mlp_nn(data_train.x).squeeze() - data_train.y, data_train.pos, neighbor_size = 20)
 mlp_nngls = torch.nn.Sequential(
     torch.nn.Linear(p, 100),
     torch.nn.ReLU(),
