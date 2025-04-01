@@ -389,7 +389,7 @@ print(f"\rRunning time: {end_time - start_time} seconds")
 
 
 ```python
-[test_predict, test_U, test_L] = model.predict(data_train, data_test, CI = True)
+[test_predict, test_U, test_L] = model.predict(data_train, data_test, PI = True)
 plt.clf()
 plt.scatter(test_predict.detach().numpy(), data_test.y.detach().numpy(), s = 1, label = 'Truth vs prediction')
 plt.scatter(data_test.y.detach().numpy(), data_test.y.detach().numpy(), s = 1, label = 'reference')

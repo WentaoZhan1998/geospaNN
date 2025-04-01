@@ -1,6 +1,7 @@
 from .utils import make_cov_full, distance, edit_batch, krig_pred, make_cov
 from .R import BRISC_estimation
 
+import warnings
 import torch
 import torch_geometric
 from torch_geometric.nn import MessagePassing
@@ -292,6 +293,7 @@ class nngls(torch.nn.Module):
     def predict(self,
                 data_train: torch_geometric.data.Data,
                 data_test: torch_geometric.data.Data,
+                PI: Optional[bool] = False,
                 CI:Optional[bool] = False, **kwargs
                 ):
         """Kriging prediction on a test dataset.
@@ -325,9 +327,10 @@ class nngls(torch.nn.Module):
             Zhan, Wentao, and Abhirup Datta. 2024. “Neural Networks for Geospatial Data.”
             Journal of the American Statistical Association, June, 1–21. doi:10.1080/01621459.2024.2356293.
         """
+        warnings.warn("Please use argument PI instead of CI to indicate whether to create prediction interval.")
         with torch.no_grad():
             w_train = data_train.y - self.estimate(data_train.x)
-            if CI:
+            if PI or CI:
                 w_test, w_u, w_l = krig_pred(w_train, data_train.pos, data_test.pos, self.theta, **kwargs)
                 estimation_test = self.estimate(data_test.x)
                 return [estimation_test + w_test, estimation_test + w_u, estimation_test + w_l]

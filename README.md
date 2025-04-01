@@ -110,7 +110,7 @@ pip install torch_geometric --no-cache-dir
 
 
 ### Main installation
-Once PyTorch and PyG are successfully installed, use the following command in the terminal for the latest version (version 11/2024):
+Once PyTorch and PyG are successfully installed, use the following command in the terminal for the latest version (version 04/2025):
 ```
 pip install https://github.com/WentaoZhan1998/geospaNN/archive/main.zip
 ```
