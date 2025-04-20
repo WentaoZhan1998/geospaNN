@@ -228,7 +228,7 @@ def plot_PDP_list(model_list: list,
     else:
         axes.set_title(f"Partial Dependence for Features")
         axes.legend()  # Ensure legends show up for each axis
-        fig_single.savefig(save_path + f"PDP_features.png")
+        fig.savefig(save_path + f"PDP_features.png")
 
 def plot_log(training_log: list,
              theta: tuple[float, float, float],
