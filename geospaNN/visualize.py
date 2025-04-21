@@ -89,6 +89,11 @@ class _PDP_estimator(BaseEstimator, RegressorMixin):
     def __init__(self, intValue=0):
         self.intValue = intValue
 
+    def __sklearn_tags__(self):
+        tags = super().__sklearn_tags__()
+        tags.estimator_type = "regressor"
+        return tags
+
     def fit(self, X, model):
         self.treshold_ = 1
         self.model = model
