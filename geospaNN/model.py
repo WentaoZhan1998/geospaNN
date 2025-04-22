@@ -371,9 +371,9 @@ def linear_gls(data_train: torch_geometric.data.Data,
         return beta[0] + torch.Tensor(beta[1:]) * X
 
     model = nngls(p=data_train.x.shape[1], neighbor_size=15, coord_dimensions=2, mlp=mlp_BRISC, theta=torch.tensor(theta_hat_BRISC))
-    cov = make_cov(data_train.pos, theta_hat_BRISC.theta, neighbor_size = neighbor_size)
+    cov = make_cov(data_train.pos, theta_hat_BRISC, neighbor_size = neighbor_size)
     Z = cov.decorrelate(x)
     model.var = torch.linalg.pinv(Z.T @ Z)
     return model
 
-__all__ = ['nngls']
+__all__ = ['nngls', 'linear_gls']
