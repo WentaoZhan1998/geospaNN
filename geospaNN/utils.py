@@ -294,6 +294,24 @@ class NNGP_cov_np(Sparse_B):
         return np.sqrt(np.reciprocal(self.F_diag))*self.matmul(x)
 """
 
+def confidence_interval(model_linear,
+                        X,
+                        rep = 200,
+                        quantiles = [97.5, 2.5],
+                        seed = 2025,
+                        ):
+    np.random.seed(seed)
+    samples = np.random.multivariate_normal(model_linear.beta, model_linear.var, size=rep)
+    estimate_mat = np.zeros((rep, X.shape[0]))
+
+    for i in range(rep):
+        beta_temp = samples[i, :]
+        # Direct computation instead of redefining mlp
+        estimate_mat[i, :] = (beta_temp[0] + X @ beta_temp[1:].reshape(-1, 1)).reshape(-1)
+    CI_U = np.percentile(estimate_mat, quantiles[0], axis=0)
+    CI_L = np.percentile(estimate_mat, quantiles[1], axis=0)
+    return [CI_U, CI_L]
+
 def coord_basis(coord,
                 num_basis: Optional[list] = [2 ** 2, 4 ** 2, 6 ** 2]):
     coord_np = coord.detach().numpy()

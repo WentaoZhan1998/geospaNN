@@ -9,10 +9,13 @@ that explicitly accounts for spatial correlation in the data. The package is dev
 under the framework of [PyG](https://pytorch-geometric.readthedocs.io/en/latest/) library. 
 NN-GLS is a geographically-informed Graph Neural Network (GNN) for analyzing large and irregular geospatial data, 
 that combines multi-layer perceptrons, Gaussian processes, and generalized least squares (GLS) loss. 
-NN-GLS offers both regression function estimation and spatial prediction, and can scale up to sample sizes of hundreds of thousands. A  vignette is available at [https://github.com/WentaoZhan1998/geospaNN/blob/main/vignette/vignette.pdf](https://github.com/WentaoZhan1998/geospaNN/blob/main/vignette/vignette.pdf). 
-Users are welcome to provide any helpful suggestions and comments.
+NN-GLS offers both regression function estimation and spatial prediction, and can scale up to sample sizes of hundreds of thousands. Users are welcome to provide any helpful suggestions and comments.
 
-Acknowledgement: This work was partially supported by the National Institute of Environmental Health Sciences (NIEHS) under grant R01 ES033739.
+* The official website (with documentation and running examples) is available at [https://wentaozhan1998.github.io/geospaNN-doc/](https://wentaozhan1998.github.io/geospaNN-doc/).
+
+* A vignette is available at [https://github.com/WentaoZhan1998/geospaNN/blob/main/vignette/vignette.pdf](https://github.com/WentaoZhan1998/geospaNN/blob/main/vignette/vignette.pdf). 
+
+Acknowledgement: This work is supported by National Institute of Environmental Health Sciences grant R01ES033739.
 
 ## Overview
 The Python package **geospaNN** stands for 'geospatial Neural Networks', where we implement NN-GLS, 
@@ -39,7 +42,7 @@ Thus NN-GLS is implemented in **geospaNN** with the framework of Graph Neural Ne
 **geospaNN** provides an estimate of regression function 𝑓(𝑥) as well as accurate spatial predictions using Gaussian process (kriging), 
 and thus constitutes a complete geospatial analysis pipeline. 
 To accelerate the training process for the GP, **geospaNN** approximates the working correlation structure using 
-Nearest Neighbor Gaussian Process (NNGP) (Datta et al., 2016) which makes it suitable for larger datasets towards a size of 1 million.
+Nearest Neighbor Gaussian Process (NNGP) (Datta et al., 2016) which makes it suitable for larger datasets towards a size of 0.5 million.
 
 <div align="center">
 <a href="https://www.tandfonline.com/doi/abs/10.1080/01621459.2024.2356293?casa_token=UaGsBumw4JAAAAAA:RD4cFpZW7lk3pu8Q5uVdxm5o3_RXWKRLXgxByEgl68qENKJfiNsS_Ci5izQ9WMQkZUKgSXasagyLQw">
@@ -115,13 +118,13 @@ Once PyTorch and PyG are successfully installed, use the following command in th
 pip install https://github.com/WentaoZhan1998/geospaNN/archive/main.zip
 ```
 
-To install the pypi version, use the following command in the terminal (version 1/2024):
+To install the pypi version, use the following command in the terminal (version 04/2025):
 ```
 pip install geospaNN
 ```
 
-## An easy running sample:
-
+## An easy running sample (functionality verification):
+This is a simple running sample to check the functionality of the package.
 First, run python in the terminal:
 ```commandline\
 python
@@ -220,18 +223,22 @@ test_predict = model.predict(data_train, data_test)
 * For the linear regression case, a performance comparison with the R package [BRISC](https://github.com/ArkajyotiSaha/BRISC) is shown [here](https://github.com/WentaoZhan1998/geospaNN/blob/main/Example_linear.md).
 
 * A real data experiment is shown [here](https://github.com/WentaoZhan1998/geospaNN/blob/main/Example_realdata.md). 
+
 * The PM2.5 data is collected from the [U.S. Environmental Protection Agency](https://www.epa.gov/outdoor-air-quality-data/download-daily-data) datasets for each state are collected and bound together to obtain 'pm25_2022.csv'. daily PM2.5 files are subsets of 'pm25_2022.csv' produced by 'realdata_preprocess.py'. One can skip the preprocessing and use the daily files directory. 
+
 * The meteorological data is collected from the [National Centers for Environmental Prediction’s (NCEP) North American Regional Reanalysis (NARR) product](https://psl.noaa.gov/data/gridded/data.narr.html). The '.nc' (netCDF) files should be downloaded from the website and saved in the root directory to run 'realdata_preprocess.py'. Otherwise, one may skip the preprocessing and use covariate files directly. 
+
+* More running examples are available on the [geospaNN website](https://wentaozhan1998.github.io/geospaNN-doc/Examples/)
 
 ## Citation
 Please cite the following paper when you use **geospaNN**:
 
-> Zhan, Wentao, and Abhirup Datta. 2024. “Neural Networks for Geospatial Data.” Journal of the American Statistical Association, June, 1–21. doi:10.1080/01621459.2024.2356293.
+> Zhan, Wentao, and Abhirup Datta. 2024. “Neural Networks for Geospatial Data.” Journal of the American Statistical Association 120 (549): 535–547. https://doi.org/10.1080/01621459.2024.2356293
 > 
 ## References
 
-Datta, Abhirup, Sudipto Banerjee, Andrew O. Finley, and Alan E. Gelfand. 2016. “Hierarchical Nearest-Neighbor Gaussian Process Models for Large Geostatistical Datasets.” Journal of the American Statistical Association 111 (514): 800–812. doi:10.1080/01621459.2015.1044091.
+Datta, Abhirup, Sudipto Banerjee, Andrew O. Finley, and Alan E. Gelfand. 2016. “Hierarchical Nearest-Neighbor Gaussian Process Models for Large Geostatistical Datasets.” Journal of the American Statistical Association 111 (514): 800–812. https://doi.org/10.1080/01621459.2015.1044091.
 
-Zhan, Wentao, and Abhirup Datta. 2024. “Neural Networks for Geospatial Data.” Journal of the American Statistical Association, June, 1–21. doi:10.1080/01621459.2024.2356293.
+Zhan, Wentao, and Abhirup Datta. 2024. “Neural Networks for Geospatial Data.” Journal of the American Statistical Association 120 (549): 535–547. https://doi.org/10.1080/01621459.2024.2356293
 
 Katzfuss, Matthias, and Joseph Guinness. 2021. "A General Framework for Vecchia Approximations of Gaussian Processes." Statist. Sci. 36 (1) 124 - 141. https://doi.org/10.1214/19-STS755

@@ -62,7 +62,7 @@ z = pm25[:,None]
 lon = df_covariates.values[:,1]
 lat = df_covariates.values[:,2]
 
-f = interpolate.Rbf(lon[idx_new], lat[idx_new], z, function = 'inverse')
+f = interpolate.Rbf(lon[idx_new], lat[idx_new], z, function = 'linear')
 x_test = gdf.loc[inUS,:].X
 y_test = gdf.loc[inUS,:].Y
 z_test = f(x_test, y_test)

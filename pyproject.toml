@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "geospaNN"
-version = "0.1.8"
+version = "0.1.9"
 authors = [
   { name="Wentao Zhan", email="wzhan3@jhu.edu" },
     { name="Abhirup Datta", email="abhidatta@jhu.edu" }
