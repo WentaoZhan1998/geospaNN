@@ -152,7 +152,6 @@ theta = torch.tensor([sigma, phi, tau])
 # 3.
 n = 1000            # Size of the simulated sample.
 nn = 20             # Neighbor size used for NNGP.
-batch_size = 50     # Batch size for training the neural networks.
 ```
 
 Next, simulate and split the data.
