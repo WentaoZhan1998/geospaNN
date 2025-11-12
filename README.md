@@ -75,7 +75,7 @@ Example:
     # bash
     conda env create -f environment.yml --subdir osx-arm64
     ```
-For more details on creating a conda environment, refer to this [doc](https://conda.io/projects/conda/en/latest/user-guide/tasks/manage-environments.html).
+    For more details on creating a conda environment, refer to this [doc](https://conda.io/projects/conda/en/latest/user-guide/tasks/manage-environments.html).
 3. Enter the virtual environment by running:
     ```commandline\ 
     # bash
