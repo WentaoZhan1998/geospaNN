@@ -1,0 +1,23 @@
+name: Conda_install
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.10
+  - r-base
+  - rpy2
+  - numpy
+  - pandas
+  - matplotlib
+  - scipy
+  - scikit-learn
+  - seaborn
+  - pytorch_geometric
+  - pyg-lib
+  - pytorch_scatter
+  - pytorch_sparse
+  - pytorch_cluster
+  - pip:
+      - rpy2-rinterface
+      - rpy2-robjects
+      - https://github.com/WentaoZhan1998/geospaNN/archive/main.zip

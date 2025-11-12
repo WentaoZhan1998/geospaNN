@@ -93,7 +93,16 @@ class LRScheduler():
         self.patience = patience
         self.min_lr = min_lr
         self.factor = factor
-        self.lr_scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
+        if torch.__version__ >= '2.3.0':
+            self.lr_scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
+                    self.optimizer,
+                    mode='min',
+                    patience=self.patience,
+                    factor=self.factor,
+                    min_lr=self.min_lr
+                )
+        else:
+            self.lr_scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(
                 self.optimizer,
                 mode='min',
                 patience=self.patience,
@@ -101,6 +110,7 @@ class LRScheduler():
                 min_lr=self.min_lr,
                 verbose=True
             )
+
     def __call__(self, val_loss):
         self.lr_scheduler.step(val_loss)
 

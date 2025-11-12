@@ -53,75 +53,74 @@ Nearest Neighbor Gaussian Process (NNGP) (Datta et al., 2016) which makes it sui
 </a>
 </div>
 
-## Temporary notes (Updated on Sep 12th 2024)
-1. The installation of the package relies on PyTorch and PyG libraries, which for now have to be installed manually.
+## Temporary notes (Updated on Nov 2025)
+1. The installation of the package relies is now based on PyTorch 2.7.0.
 
 ## Installation
-### Create and enter virtual environment (recommended)
-1. If you haven't installed anaconda on your machine, refer to this [doc](https://docs.anaconda.com/anaconda/install/), follow the instruction, 
+We provide two straightforward installation approaches: via conda and via pip.
+Depending on your system setup, it is possible to combine both methods, but be aware that mixing Conda and Pip installations can sometimes lead to dependency conflicts. Proceed with caution and ensure that package versions remain compatible.
+
+### Approach 1: all-in-one through conda (recommended)
+1. If you haven't installed anaconda on your machine, refer to this [doc](https://docs.anaconda.com/anaconda/install/) follow the instruction 
 and install the right version.
-2. Create the conda virtual environment. Refer to this [doc](https://conda.io/projects/conda/en/latest/user-guide/tasks/manage-environments.html). Example:
+2. Create the conda virtual environment from the [environment.yml](https://github.com/WentaoZhan1998/geospaNN/blob/main/environment.yml) file in this repository. You can specify your environment name by editing "env_name" on the first line of the yml file.
+Example:
 ```commandline\ 
 # bash
-conda create -n [name of your environment] python=3.10
+conda env create -f environment.yml
 ```
+Note:
+For Apple Silicon users on a Mac with an Apple M-series (ARM64) chip, you can improve performance by explicitly creating the environment for the ARM architecture instead:
+```commandline\ 
+# bash
+conda env create -f environment.yml --subdir osx-arm64
+```
+For more details on creating a conda environment, refer to this [doc](https://conda.io/projects/conda/en/latest/user-guide/tasks/manage-environments.html).
 3. Enter the virtual environment by running:
 ```commandline\ 
 # bash
 conda activate [name of your environment]
 ```
-4. In the current version of geospaNN, to use the R-package [BRISC](https://github.com/ArkajyotiSaha/BRISC) 
-for spatial parameter estimation (through rpy2), we need R installed in the environment. In order to install R, simply run:
-```commandline\ 
-# bash
-conda install r-base
-```
-If you already have native R installed, it's also possible to manually initialize R for rpy2. 
-See [here](https://rpy2.github.io/doc/latest/html/overview.html#install-installation) for more details.
 
-### Manual dependency installation
-(Currently) to install the development version of the package, a pre-installed PyTorch and PyG libraries are needed.
-We provide options to install PyG libraries using conda and pip.
+### Approach 2: using pip
+(Currently) to avoid running issue, matched PyTorch and PyG libraries are needed, requiring us to install torch and pyg library manually.
 
-#### Option 1: Using Conda
-For conda, installation in the following order is recommended. It may take around 10 minutes for conda to solve the environment for pytorch-sparse.
-The following chunk has been tested in a python 3.10 environment.
-```
-#bash
-conda install pytorch torchvision -c pytorch
-conda install pyg -c pyg        
-conda install pytorch-sparse -c pyg 
-```
-
-#### Option 2: Using pip
-For pip, installation in the following order is recommended to avoid any compilation issue. It may take around 15 minutes to finish the installation.
+1. For pip, installation in the following order is recommended to avoid any compilation issue.
 The following chunk has been tested in a python 3.10 environment.
 ```
 # bash
-pip install numpy==1.26 --no-cache-dir
-pip install torch==2.0.0 --no-cache-dir
-pip install torch-scatter -f https://data.pyg.org/whl/torch-2.0.0.html --no-cache-dir
-pip install torch-sparse -f https://data.pyg.org/whl/torch-2.0.0.html --no-cache-dir
-pip install torch-cluster -f https://data.pyg.org/whl/torch-2.0.0.html --no-cache-dir
-pip install torch_geometric --no-cache-dir
+pip install numpy torch==2.7 torch_geometric
+pip install pyg_lib torch_scatter torch_sparse torch_cluster torch_spline_conv -f https://data.pyg.org/whl/torch-2.7.0+cpu.html
 ```
-<!---
-1. To install PyTorch, find and install the binary suitable for your machine [here](https://pytorch.org/).
-2. Then to install the PyG library, find and install the proper binary [here](https://pytorch-geometric.readthedocs.io/en/latest/notes/installation.html).
-3. Make sure to also install the dependencies including *pyg_lib*, *torch_scatter*, *torch_sparse*, *torch_cluster*, and *torch_spline_conv*.
--->
-
-
-### Main installation
-Once PyTorch and PyG are successfully installed, use the following command in the terminal for the latest version (version 04/2025):
+2. Once PyTorch and PyG are successfully installed, use the following command in the terminal for the latest version (version 04/2025):
 ```
+# bash
 pip install https://github.com/WentaoZhan1998/geospaNN/archive/main.zip
 ```
-
 To install the pypi version, use the following command in the terminal (version 04/2025):
 ```
+# bash
 pip install geospaNN
 ```
+3. (Skip if you already have R ready to use). The current version of **geospaNN** uses R-package [BRISC](https://github.com/ArkajyotiSaha/BRISC) 
+for spatial parameter estimation through rpy2, thus requiring R installed in the environment. To install an R version compatible with your Python and system architecture, Mac users can check their architecture with:
+```
+# bash
+python -c "import platform; print(platform.machine())"
+```
+Then download the appropriate R installer from [CRAN for macOS](https://cran.r-project.org/bin/macosx/). Windows users can download R from [CRAN for Windows](https://cran.r-project.org/bin/windows/base/). 
+4. If rpy2 cannot find your R installation, you may need to set the R home directory manually. First, find R’s home path by running in terminal:
+```
+# bash
+R R_HOME
+```
+Then, set this directory in your Python environment before importing **geospaNN**:
+```
+# bash
+python -c "import os; os.environ["R_HOME"] = [R home path]"
+```
+Make sure to use the path to the correct R.
+
 
 ## An easy running sample (functionality verification):
 This is a simple running sample to check the functionality of the package.
@@ -232,12 +231,12 @@ test_predict = model.predict(data_train, data_test)
 ## Citation
 Please cite the following paper when you use **geospaNN**:
 
-> Zhan, Wentao, and Abhirup Datta. 2024. “Neural Networks for Geospatial Data.” Journal of the American Statistical Association 120 (549): 535–547. https://doi.org/10.1080/01621459.2024.2356293
+> Zhan, Wentao, and Abhirup Datta. 2025. “Neural Networks for Geospatial Data.” Journal of the American Statistical Association 120 (549): 535–547. https://doi.org/10.1080/01621459.2024.2356293
 > 
 ## References
 
 Datta, Abhirup, Sudipto Banerjee, Andrew O. Finley, and Alan E. Gelfand. 2016. “Hierarchical Nearest-Neighbor Gaussian Process Models for Large Geostatistical Datasets.” Journal of the American Statistical Association 111 (514): 800–812. https://doi.org/10.1080/01621459.2015.1044091.
 
-Zhan, Wentao, and Abhirup Datta. 2024. “Neural Networks for Geospatial Data.” Journal of the American Statistical Association 120 (549): 535–547. https://doi.org/10.1080/01621459.2024.2356293
+Zhan, Wentao, and Abhirup Datta. 2025. “Neural Networks for Geospatial Data.” Journal of the American Statistical Association 120 (549): 535–547. https://doi.org/10.1080/01621459.2024.2356293
 
 Katzfuss, Matthias, and Joseph Guinness. 2021. "A General Framework for Vecchia Approximations of Gaussian Processes." Statist. Sci. 36 (1) 124 - 141. https://doi.org/10.1214/19-STS755
