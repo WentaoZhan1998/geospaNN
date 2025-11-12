@@ -8,6 +8,9 @@
 .ipynb_checkpoints/
 .idea/
 
+# python cache
+.__pycache__/
+
 # Rmarkdown html files
 demo_code/randomForestsGLS_demo.nb.html
 
