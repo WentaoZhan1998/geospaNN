@@ -65,61 +65,61 @@ Depending on your system setup, it is possible to combine both methods, but be a
 and install the right version.
 2. Create the conda virtual environment from the [environment.yml](https://github.com/WentaoZhan1998/geospaNN/blob/main/environment.yml) file in this repository. You can specify your environment name by editing "env_name" on the first line of the yml file.
 Example:
-```commandline\ 
-# bash
-conda env create -f environment.yml
-```
-Note:
-For Apple Silicon users on a Mac with an Apple M-series (ARM64) chip, you can improve performance by explicitly creating the environment for the ARM architecture instead:
-```commandline\ 
-# bash
-conda env create -f environment.yml --subdir osx-arm64
-```
+    ```commandline\ 
+    # bash
+    conda env create -f environment.yml
+    ```
+    Note:
+    For Apple Silicon users on a Mac with an Apple M-series (ARM64) chip, you can improve performance by explicitly creating the environment for the ARM architecture instead:
+    ```commandline\ 
+    # bash
+    conda env create -f environment.yml --subdir osx-arm64
+    ```
 For more details on creating a conda environment, refer to this [doc](https://conda.io/projects/conda/en/latest/user-guide/tasks/manage-environments.html).
 3. Enter the virtual environment by running:
-```commandline\ 
-# bash
-conda activate [name of your environment]
-```
+    ```commandline\ 
+    # bash
+    conda activate [name of your environment]
+    ```
 
 ### Approach 2: using pip
 (Currently) to avoid running issue, matched PyTorch and PyG libraries are needed, requiring us to install torch and pyg library manually.
 
 1. For pip, installation in the following order is recommended to avoid any compilation issue.
 The following chunk has been tested in a python 3.10 environment.
-```
-# bash
-pip install numpy torch==2.7 torch_geometric
-pip install pyg_lib torch_scatter torch_sparse torch_cluster torch_spline_conv -f https://data.pyg.org/whl/torch-2.7.0+cpu.html
-```
+    ```
+    # bash
+    pip install numpy torch==2.7 torch_geometric
+    pip install pyg_lib torch_scatter torch_sparse torch_cluster torch_spline_conv -f https://data.pyg.org/whl/torch-2.7.0+cpu.html
+    ```
 2. Once PyTorch and PyG are successfully installed, use the following command in the terminal for the latest version (version 04/2025):
-```
-# bash
-pip install https://github.com/WentaoZhan1998/geospaNN/archive/main.zip
-```
-To install the pypi version, use the following command in the terminal (version 04/2025):
-```
-# bash
-pip install geospaNN
-```
+    ```
+    # bash
+    pip install https://github.com/WentaoZhan1998/geospaNN/archive/main.zip
+    ```
+    To install the pypi version, use the following command in the terminal (version 04/2025):
+    ```
+    # bash
+    pip install geospaNN
+    ```
 3. (Skip if you already have R ready to use). The current version of **geospaNN** uses R-package [BRISC](https://github.com/ArkajyotiSaha/BRISC) 
 for spatial parameter estimation through rpy2, thus requiring R installed in the environment. To install an R version compatible with your Python and system architecture, Mac users can check their architecture with:
-```
-# bash
-python -c "import platform; print(platform.machine())"
-```
-Then download the appropriate R installer from [CRAN for macOS](https://cran.r-project.org/bin/macosx/). Windows users can download R from [CRAN for Windows](https://cran.r-project.org/bin/windows/base/). 
+    ```
+    # bash
+    python -c "import platform; print(platform.machine())"
+    ```
+    Then download the appropriate R installer from [CRAN for macOS](https://cran.r-project.org/bin/macosx/). Windows users can download R from [CRAN for Windows](https://cran.r-project.org/bin/windows/base/). 
 4. If rpy2 cannot find your R installation, you may need to set the R home directory manually. First, find R’s home path by running in terminal:
-```
-# bash
-R R_HOME
-```
-Then, set this directory in your Python environment before importing **geospaNN**:
-```
-# bash
-python -c "import os; os.environ["R_HOME"] = [R home path]"
-```
-Make sure to use the path to the correct R.
+    ```
+    # bash
+    R R_HOME
+    ```
+    Then, set this directory in your Python environment before importing **geospaNN**:
+    ```
+    # bash
+    python -c "import os; os.environ["R_HOME"] = [R home path]"
+    ```
+    Make sure to use the path to the correct R.
 
 
 ## An easy running sample (functionality verification):
