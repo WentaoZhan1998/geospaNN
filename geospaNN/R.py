@@ -38,6 +38,8 @@ def BRISC_estimation(residual, X, coord):
 
     theta_hat = res[9]
     beta = res[8]
+    del res
+    ro.r("gc()")
     beta = np.array(beta)
     theta_hat = np.array(theta_hat)
     phi = theta_hat[2]

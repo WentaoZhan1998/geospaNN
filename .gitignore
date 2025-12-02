@@ -17,3 +17,7 @@ demo_code/randomForestsGLS_demo.nb.html
 # vignette
 /vignette/*
 !/vignette/vignette.pdf
+
+# joss
+/joss/paper_v1.md
+/joss/paper_v1.pdf
