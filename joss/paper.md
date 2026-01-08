@@ -10,17 +10,17 @@ tags:
 output: pdf_document
 authors:
 - name: Wentao Zhan
-  affiliation: 2
-- name: Abhirup Datta
   affiliation: 1
+- name: Abhirup Datta
+  affiliation: 2
 bibliography: paper.bib
 editor_options:
   markdown:
     wrap: 72
 affiliations:
-- name: Department of Biostatistics, Johns Hopkins Bloomberg School of Public Health
-  index: 1
 - name: Department of Statistics, University of Wisconsin-Madison
+  index: 1
+- name: Department of Biostatistics, Johns Hopkins Bloomberg School of Public Health
   index: 2
 ---
 
