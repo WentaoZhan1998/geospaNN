@@ -123,8 +123,8 @@ mlp_nngls = torch.nn.Sequential(
     torch.nn.ReLU(),
     torch.nn.Linear(20, 1),
 )
-nngls_model = geospaNN.nngls(p=p, neighbor_size=nn, coord_dimensions=2, mlp=mlp_nngls, 
-                       theta=torch.tensor(theta0))
+nngls_model = geospaNN.nngls(p=p, neighbor_size=nn, coord_dimensions=2, 
+                             mlp=mlp_nngls, theta=torch.tensor(theta0))
 trainer_nngls = geospaNN.nngls_train(nngls_model, lr=0.1, min_delta=0.001)
 training_log = trainer_nngls.train(data_train, data_val, epoch_num= 200, 
                                    Update_init=10, Update_step=2, 
@@ -150,7 +150,8 @@ These parameters can be used to reconstruct the implied covariance matrix or inf
 
 While mean function estimation reflect the connection between variables, to predict the value of response $Y$ at new locations with uncertainty quantification, `geospaNN` uses `predict()` method:
 ```python
-[test_predict, test_PI_U, test_PI_L] = nngls_model.predict(data_train, data_test, PI = True)
+[test_predict, test_PI_U, test_PI_L] = nngls_model.predict(data_train, data_test, 
+                                                           PI = True)
 ```
 
 ## Other Features
