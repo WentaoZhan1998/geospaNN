@@ -1,5 +1,5 @@
 ---
-title: '**geospaNN**: A Python package for geospatial neural networks'
+title: 'geospaNN: A Python package for geospatial neural networks'
 tags:
 - Python
 - Pytorch
