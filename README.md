@@ -229,10 +229,11 @@ test_predict = model.predict(data_train, data_test)
 * More running examples are available on the [geospaNN website](https://wentaozhan1998.github.io/geospaNN-doc/Examples/)
 
 ## Citation
-Please cite the following paper when you use **geospaNN**:
+Please cite the following papers when you use **geospaNN**:
 
 > Zhan, Wentao, and Abhirup Datta. 2025. “Neural Networks for Geospatial Data.” Journal of the American Statistical Association 120 (549): 535–547. https://doi.org/10.1080/01621459.2024.2356293
-> 
+> Zhan, Wentao, and Abhirup Datta. 2026 "geospaNN: A Python package for geospatial neural networks." Journal of Open Source Software 11.117 (2026): 8389. https://doi.org/10.21105/joss.08389
+>
 ## References
 
 Datta, Abhirup, Sudipto Banerjee, Andrew O. Finley, and Alan E. Gelfand. 2016. “Hierarchical Nearest-Neighbor Gaussian Process Models for Large Geostatistical Datasets.” Journal of the American Statistical Association 111 (514): 800–812. https://doi.org/10.1080/01621459.2015.1044091.
