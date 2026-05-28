@@ -81,6 +81,11 @@ Example:
     # bash
     conda activate [name of your environment]
     ```
+4. Install **geospaNN** inside the environment:
+    ```commandline\ 
+    # bash
+    pip install https://github.com/WentaoZhan1998/geospaNN/archive/main.zip
+    ```
 
 ### Approach 2: using pip
 (Currently) to avoid running issue, matched PyTorch and PyG libraries are needed, requiring us to install torch and pyg library manually.
