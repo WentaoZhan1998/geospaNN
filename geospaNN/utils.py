@@ -13,6 +13,27 @@ import math
 import warnings
 import random
 
+
+def seed_everything(seed: int,
+                    deterministic: Optional[bool] = True,
+                    num_threads: Optional[int] = None
+                    ) -> None:
+    """Seed Python, NumPy, and Torch in one place."""
+    random.seed(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    if torch.cuda.is_available():
+        torch.cuda.manual_seed(seed)
+        torch.cuda.manual_seed_all(seed)
+        torch.backends.cudnn.deterministic = bool(deterministic)
+        torch.backends.cudnn.benchmark = False
+    if deterministic:
+        torch.use_deterministic_algorithms(True, warn_only=True)
+    if num_threads is not None:
+        torch.set_num_threads(num_threads)
+        torch.set_num_interop_threads(num_threads)
+
+
 class DropoutLayer(torch.nn.Module):
     """
     Customized dropout layer where the nodes values are dropped with probability p.
@@ -982,7 +1003,8 @@ def split_data(X: torch.Tensor,
                coord: torch.Tensor,
                neighbor_size: Optional[int] = 20,
                val_proportion: float = 0.2,
-               test_proportion: float = 0.2
+               test_proportion: float = 0.2,
+               random_state: Optional[int] = None
                ) -> tuple[torch_geometric.data.Data, torch_geometric.data.Data, torch_geometric.data.Data]:
     """Split the data into training, validation, and testing parts and add the graph information respectively.
 
@@ -1011,11 +1033,15 @@ def split_data(X: torch.Tensor,
         torch_geometric.data.Data : A data object describing a homogeneous graph.
     """
     X_train_val, X_test, Y_train_val, Y_test, coord_train_val, coord_test = train_test_split(
-        X, Y, coord, test_size = test_proportion
+        X, Y, coord, test_size = test_proportion, random_state = random_state
     )
 
     X_train, X_val, Y_train, Y_val, coord_train, coord_val = train_test_split(
-        X_train_val, Y_train_val, coord_train_val, test_size = val_proportion/(1 - test_proportion)
+        X_train_val,
+        Y_train_val,
+        coord_train_val,
+        test_size = val_proportion/(1 - test_proportion),
+        random_state = random_state
     )
 
     data_train = make_graph(X_train, Y_train, coord_train, neighbor_size)
@@ -1025,7 +1051,9 @@ def split_data(X: torch.Tensor,
     return data_train, data_val, data_test
 
 def split_loader(data: torch_geometric.data.Data,
-                 batch_size: Optional[int] = None
+                 batch_size: Optional[int] = None,
+                 seed: Optional[int] = None,
+                 shuffle: Optional[bool] = True
                  ) -> torch.DataLoaders:
     """Create mini-batches for GNN training
 
@@ -1054,9 +1082,14 @@ def split_loader(data: torch_geometric.data.Data,
     """
     if batch_size is None:
         batch_size  = int(data.x.shape[0]/20)
+    generator = None
+    if seed is not None:
+        generator = torch.Generator()
+        generator.manual_seed(int(seed))
     loader = NeighborLoader(data,
                             input_nodes=torch.tensor(range(data.x.shape[0])),num_neighbors=[-1],
-                            batch_size=batch_size, replace=False, shuffle=True)
+                            batch_size=batch_size, replace=False, shuffle=shuffle,
+                            generator=generator)
     return loader
 
 def edit_batch(batch): #### Change to a method

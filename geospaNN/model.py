@@ -111,8 +111,27 @@ class NeighborPositions(MessagePassing):
         positions = self.propagate(edge_index, pos=pos, edge_attr=edge_attr)[range(batch_size), :]
         zero_index = torch.where(positions == -torch.inf)
         nz_index = torch.where(positions > -torch.inf)
-        positions[zero_index] = (torch.rand(zero_index[0].shape) + 1) * 10000 * \
-                                (positions[nz_index].max() - positions[nz_index].min())
+        if zero_index[0].numel() > 0:
+            # Fill missing neighbor slots deterministically so forward passes do not
+            # consume RNG state or drift across environments.
+            if nz_index[0].numel() > 0:
+                span = positions[nz_index].max() - positions[nz_index].min()
+                if span == 0:
+                    span = torch.tensor(1.0, device=positions.device, dtype=positions.dtype)
+                fill_values = torch.arange(
+                    1,
+                    zero_index[0].numel() + 1,
+                    device=positions.device,
+                    dtype=positions.dtype,
+                ) * 10000 * span
+            else:
+                fill_values = torch.arange(
+                    1,
+                    zero_index[0].numel() + 1,
+                    device=positions.device,
+                    dtype=positions.dtype,
+                )
+            positions[zero_index] = fill_values
         return positions
 
     def message(self, pos_j, edge_attr):

@@ -1,4 +1,4 @@
-from .utils import LRScheduler, EarlyStopping, split_loader, theta_update
+from .utils import LRScheduler, EarlyStopping, split_loader, theta_update, seed_everything
 
 import torch
 import torch_geometric
@@ -55,7 +55,7 @@ class nn_train():
               data_test: Optional[torch_geometric.data.Data] = None,
               batch_size: Optional[int] = None,
               epoch_num: Optional[int] = 100,
-              seed: Optional[int] = torch.randint(0, 2024, (1,))
+              seed: Optional[int] = None
               ) -> list:
         """Train the neural networks model.
 
@@ -82,8 +82,9 @@ class nn_train():
             batch_size = int(data_train.x.shape[0]/10)
         if data_test is None:
             data_test = data_train
-        torch.manual_seed(seed)
-        train_loader = split_loader(data_train, batch_size)
+        if seed is not None:
+            seed_everything(int(seed))
+        train_loader = split_loader(data_train, batch_size, seed=seed)
         training_log = {'val_loss': [], 'est_loss': [], 'sigma': [], 'phi': [], 'tau': []}
         for epoch in range(epoch_num):
             # Train for one epoch
@@ -194,7 +195,7 @@ class nngls_train():
               epoch_num: Optional[int] = 100,
               Update_init: Optional[int] = 0,
               Update_step: Optional[int] = 1,
-              seed: Optional[int] = torch.randint(0, 2024, (1,)),
+              seed: Optional[int] = None,
               vignette: Optional[bool] = False
               ) -> list:
         """Train NN-GLS.
@@ -225,8 +226,9 @@ class nngls_train():
         """
         if batch_size is None:
             batch_size = int(data_train.x.shape[0]/10)
-        torch.manual_seed(seed)
-        train_loader = split_loader(data_train, batch_size)
+        if seed is not None:
+            seed_everything(int(seed))
+        train_loader = split_loader(data_train, batch_size, seed=seed)
         training_log = {'val_loss': [], 'est_loss': [], 'sigma': [], 'phi': [], 'tau': []}
         for epoch in range(epoch_num):
             # Train for one epoch
